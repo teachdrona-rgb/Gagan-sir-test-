@@ -1968,7 +1968,7 @@
                     if (!title || !sourceText) return this.showToast('Fill title and source text!', 'error');
                     if (!Number.isInteger(count) || count < 2 || count > 200) return this.showToast('Enter a valid question count (2-200).', 'error');
                     btnId = 'btn-ai-text';
-                    prompt = `Create exactly ${count} multiple-choice questions based strictly on the following text.
+                    prompt = `Create exactly ${count} multiple-choice questions based strictly on the following text.`;
 Text:
 """${sourceText}"""`;
                 } else {
