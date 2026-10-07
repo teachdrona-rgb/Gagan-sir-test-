@@ -11,19 +11,18 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Google Fonts -->
+    <!-- Google Fonts (Inter & Noto Sans Devanagari) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-    <!-- Firebase (v8 compat) -->
+    <!-- Firebase (v8 compat for real-time live sync) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-    <!-- Canvas Confetti -->
+    <!-- Canvas Confetti for Celebrations -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    
-    <!-- MathJax -->
+    <!-- MathJax for LaTeX/Math rendering -->
     <script>
         window.MathJax = {
             tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]'], ['$$', '$$']] },
@@ -95,7 +94,7 @@
             </span>
             <div class="overflow-hidden w-full relative">
                 <p id="marquee-text" class="whitespace-nowrap font-devanagari text-xs animate-marquee">
-                    🔥 MP Police Constable, SSC GD, UP Police & Railway Mock Tests + Advanced AI Doubt Solver Active!
+                    🔥 MP Police Constable, SSC GD, UP Police & Railway Mock Tests + Live Batches, Notes & Advanced AI Doubt Solver Active!
                 </p>
             </div>
         </div>
@@ -121,10 +120,13 @@
                     </div>
                 </div>
 
-                <!-- Desktop Navigation Links (Focused on Tests) -->
+                <!-- Desktop Navigation Links -->
                 <div class="hidden lg:flex items-center space-x-1 font-medium text-sm">
                     <button onclick="window.app.navigateTo('home')" class="px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-sky-400 transition"><i class="fa-solid fa-house mr-1.5"></i> Home</button>
+                    <button onclick="window.app.navigateTo('batches')" class="px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-sky-400 transition"><i class="fa-solid fa-layer-group mr-1.5 text-amber-400"></i> Batches</button>
                     <button onclick="window.app.navigateTo('test-series')" class="px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-sky-400 transition"><i class="fa-solid fa-vial mr-1.5 text-emerald-400"></i> Live Tests</button>
+                    <button onclick="window.app.navigateTo('ai-doubt')" class="px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-sky-400 transition"><i class="fa-solid fa-robot mr-1.5 text-purple-400"></i> AI Doubt Solver</button>
+                    <button onclick="window.app.navigateTo('notes')" class="px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-sky-400 transition"><i class="fa-solid fa-file-pdf mr-1.5 text-rose-400"></i> Notes</button>
                     <button onclick="window.app.navigateTo('leaderboard')" class="px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-sky-400 transition"><i class="fa-solid fa-trophy mr-1.5 text-yellow-400"></i> Leaderboard</button>
                 </div>
 
@@ -151,19 +153,27 @@
     <!-- Main View Dynamic Container -->
     <main id="app-view-container" class="flex-grow flex flex-col"></main>
 
-    <!-- Mobile APK Bottom Navigation Bar (Focused) -->
+    <!-- Mobile APK Bottom Navigation Bar -->
     <div class="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur border-t border-slate-800 z-30 px-2 py-1.5 flex justify-around items-center text-center pb-2 shadow-2xl">
         <button onclick="window.app.navigateTo('home')" class="flex flex-col items-center py-1 px-2 text-slate-400 hover:text-sky-400 focus:text-sky-400">
             <i class="fa-solid fa-house text-base mb-0.5"></i>
             <span class="text-[10px] font-medium">Home</span>
         </button>
+        <button onclick="window.app.navigateTo('batches')" class="flex flex-col items-center py-1 px-2 text-slate-400 hover:text-amber-400 focus:text-amber-400">
+            <i class="fa-solid fa-layer-group text-base mb-0.5"></i>
+            <span class="text-[10px] font-medium">Batches</span>
+        </button>
         <button onclick="window.app.navigateTo('test-series')" class="flex flex-col items-center py-1 px-2 text-slate-400 hover:text-emerald-400 focus:text-emerald-400">
             <i class="fa-solid fa-vial text-base mb-0.5"></i>
             <span class="text-[10px] font-medium">Tests</span>
         </button>
-        <button onclick="window.app.navigateTo('leaderboard')" class="flex flex-col items-center py-1 px-2 text-slate-400 hover:text-yellow-400 focus:text-yellow-400">
-            <i class="fa-solid fa-trophy text-base mb-0.5"></i>
-            <span class="text-[10px] font-medium">Rank</span>
+        <button onclick="window.app.navigateTo('ai-doubt')" class="flex flex-col items-center py-1 px-2 text-slate-400 hover:text-purple-400 focus:text-purple-400">
+            <i class="fa-solid fa-robot text-base mb-0.5"></i>
+            <span class="text-[10px] font-medium">AI Doubt</span>
+        </button>
+        <button onclick="window.app.navigateTo('notes')" class="flex flex-col items-center py-1 px-2 text-slate-400 hover:text-rose-400 focus:text-rose-400">
+            <i class="fa-solid fa-file-pdf text-base mb-0.5"></i>
+            <span class="text-[10px] font-medium">Notes</span>
         </button>
     </div>
 
@@ -178,7 +188,7 @@
         <div class="bg-slate-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-700 text-center">
             <div id="msg-box-icon" class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl"></div>
             <h3 id="msg-box-title" class="text-xl font-black text-white mb-2"></h3>
-            <p id="msg-box-desc" class="text-xs text-slate-300 mb-6 font-devanagari leading-relaxed whitespace-pre-line"></p>
+            <p id="msg-box-desc" class="text-xs text-slate-300 mb-6 font-devanagari leading-relaxed"></p>
             <button onclick="window.app.closeMsgBox()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl border border-slate-600 transition shadow-lg">OK, Got It</button>
         </div>
     </div>
@@ -189,7 +199,7 @@
         <img id="preview-image-el" src="" class="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl border border-slate-800">
     </div>
 
-    <!-- Student Auth Modal -->
+    <!-- Student Auth Modal (Login / Register) -->
     <div id="modal-student-auth" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 modal-enter-active">
         <div class="bg-slate-900 border border-slate-700 text-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
             <button onclick="window.app.closeModal('modal-student-auth')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -259,7 +269,7 @@
 
     <footer class="bg-slate-950 text-slate-500 py-6 border-t border-slate-900 mt-auto shrink-0 hidden lg:block">
         <div class="max-w-7xl mx-auto px-4 text-center text-xs font-devanagari font-medium tracking-wide">
-            © 2026 GLO ACADEMY. All Rights Reserved. Protected Admin & AI Engine Suite.
+            © 2026 GLO ACADEMY. All Rights Reserved. Protected Admin & AI Engine Suite. • API keys are session-only; use a server proxy for production.
         </div>
     </footer>
 
@@ -274,10 +284,13 @@
             projectId: "glo-academy-1d820",
             storageBucket: "glo-academy-1d820.firebasestorage.app",
             messagingSenderId: "287886640088",
-            appId: "1:287886640088:web:4c8f6e49f5d37f3d8e28ad"
+            appId: "1:287886640088:web:4c8f6e49f5d37f3d8e28ad",
+            measurementId: "G-EB70EQV2VQ"
         };
 
         const DB_KEY_TESTS = 'glo_merged_v2_tests';
+        const DB_KEY_BATCHES = 'glo_merged_v2_batches';
+        const DB_KEY_NOTES = 'glo_merged_v2_notes';
         const DB_KEY_REVIEW = 'glo_merged_v2_review_bank';
         const DB_KEY_SUBMISSIONS = 'glo_merged_v2_submissions';
         const DB_KEY_STUDENT = 'glo_merged_v2_student_session';
@@ -286,37 +299,53 @@
         const DB_KEY_STUDENTS_LIST = 'glo_merged_v2_all_students';
         const DB_KEY_CONTENT = 'glo_merged_v2_site_content';
 
+        const validateStoredSchema = (key, value, fallback) => {
+            if (value === null || value === undefined) return false;
+            const arrayKeys = [DB_KEY_TESTS, DB_KEY_BATCHES, DB_KEY_NOTES, DB_KEY_REVIEW, DB_KEY_SUBMISSIONS, DB_KEY_STUDENTS_LIST, DB_KEY_BLOCKED];
+            if (arrayKeys.includes(key)) return Array.isArray(value);
+            if (key === DB_KEY_CONTENT || key === 'glo_firebase_config') return typeof value === 'object' && !Array.isArray(value);
+            if (key === DB_KEY_STUDENT) return typeof value === 'object' && !Array.isArray(value) && typeof value.mobile === 'string';
+            return typeof value === typeof fallback;
+        };
+
         const safeJSONParse = (key, defaultVal) => {
             try {
                 const item = localStorage.getItem(key);
-                if (!item) return defaultVal;
-                return JSON.parse(item);
+                if (!item || typeof item !== 'string') return defaultVal;
+                const trimmed = item.trim();
+                if (!trimmed || trimmed.startsWith('<')) throw new Error('Invalid/non-JSON storage payload');
+                const parsed = JSON.parse(trimmed);
+                if (!validateStoredSchema(key, parsed, defaultVal)) throw new Error('Storage schema validation failed');
+                return parsed;
             } catch (e) {
+                console.warn(`Local storage parse/schema error for ${key}; resetting safely.`, e);
+                try { localStorage.removeItem(key); } catch (_) {}
                 return defaultVal;
             }
         };
 
+        // Provider API secrets are never persisted in localStorage.
+        // For production, configure an HTTPS server-side proxy so the browser never receives a provider secret.
         const safeSessionGet = (key, fallback = '') => {
             try { return sessionStorage.getItem(key) || fallback; } catch (_) { return fallback; }
         };
         const safeSessionSet = (key, value) => {
             try { sessionStorage.setItem(key, value); return true; } catch (_) { return false; }
         };
-        
-        // AI Keys Setup
         const AI_PROVIDER_KEY = 'glo_ai_provider';
-        const AI_MODEL_KEY = 'glo_ai_model';
+        // Current production Groq model; the old Llama 3.3 model was deprecated.
+        const GROQ_MODEL = 'openai/gpt-oss-120b';
+        const AI_PROXY_URL_KEY = 'glo_ai_proxy_url';
         const AI_SESSION_KEYS = { openai: 'glo_openai_key_session', gemini: 'glo_gemini_key_session', groq: 'glo_groq_key_session' };
-        
-        try { 
-            if(!localStorage.getItem(AI_PROVIDER_KEY)) localStorage.setItem(AI_PROVIDER_KEY, 'gemini'); 
-            if(!localStorage.getItem(AI_MODEL_KEY)) localStorage.setItem(AI_MODEL_KEY, 'gemini-1.5-flash'); 
-        } catch (_) {}
-        
-        const getAIProvider = () => { try { return localStorage.getItem(AI_PROVIDER_KEY) || 'gemini'; } catch (_) { return 'gemini'; } };
-        const getAIModel = () => { try { return localStorage.getItem(AI_MODEL_KEY) || 'gemini-1.5-flash'; } catch (_) { return 'gemini-1.5-flash'; } };
+        const getAIProvider = () => { try { return localStorage.getItem(AI_PROVIDER_KEY) || 'groq'; } catch (_) { return 'groq'; } };
+        const getAIProxyUrl = () => {
+            let url = ''; try { url = localStorage.getItem(AI_PROXY_URL_KEY) || ''; } catch (_) {}
+            return /^https?:\/\//i.test(url) ? url : '';
+        };
         const getAIKey = provider => safeSessionGet(AI_SESSION_KEYS[provider] || '', '');
         const setAIKey = (provider, value) => { if (AI_SESSION_KEYS[provider]) safeSessionSet(AI_SESSION_KEYS[provider], (value || '').trim()); };
+        const clearLegacyAIKeys = () => ['glo_openai_key','glo_gemini_key','glo_groq_key'].forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
+        clearLegacyAIKeys();
 
         const getStoredFirebaseConfig = () => safeJSONParse('glo_firebase_config', DEFAULT_FIREBASE_CONFIG);
 
@@ -325,7 +354,7 @@
             isCloudActive: false,
 
             async loadAllData() {
-                window.state.db = { tests: [], drafts: [], submissions: [], students: [], blocked: [], content: {} };
+                window.state.db = { tests: [], batches: [], notes: [], drafts: [], submissions: [], students: [], blocked: [], content: {} };
                 this.loadLocalDefaults();
 
                 const config = getStoredFirebaseConfig();
@@ -340,16 +369,18 @@
                             this.db.collection(col).onSnapshot(snap => {
                                 try {
                                     const incoming = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                                    // Protect an already-loaded local fallback from an empty initial snapshot.
                                     if (!(incoming.length === 0 && Array.isArray(window.state.db[col]) && window.state.db[col].length > 0 && !snap.metadata.hasPendingWrites)) {
                                         window.state.db[col] = incoming;
                                         this.syncToLocalCache();
                                     }
-                                    if(['home', 'test-series', 'admin-dashboard', 'leaderboard'].includes(window.state.currentView)) window.app.render();
+                                    if(['home', 'test-series', 'batches', 'admin-dashboard', 'leaderboard'].includes(window.state.currentView)) window.app.render();
                                 } catch (e) { console.error(`Firestore listener processing failed for ${col}`, e); }
-                            });
+                            }, error => console.error(`Firestore listener failed for ${col}`, error));
                         };
 
-                        setupLiveListener('tests'); setupLiveListener('drafts'); setupLiveListener('submissions'); setupLiveListener('students');
+                        setupLiveListener('tests'); setupLiveListener('batches'); setupLiveListener('notes');
+                        setupLiveListener('drafts'); setupLiveListener('submissions'); setupLiveListener('students');
 
                         this.db.collection('settings').doc('content').onSnapshot(doc => {
                             if(doc.exists) {
@@ -358,6 +389,10 @@
                                 if(window.state.currentView === 'home') window.app.render();
                             }
                         });
+
+                        this.db.collection('settings').doc('blocked').onSnapshot(doc => {
+                            if(doc.exists) { window.state.db.blocked = doc.data().list || []; this.syncToLocalCache(); }
+                        });
                     } catch (error) { console.error("Cloud DB Init Error:", error); }
                 }
             },
@@ -365,9 +400,9 @@
             loadLocalDefaults() {
                 window.state.db.content = safeJSONParse(DB_KEY_CONTENT, {
                     heading: "मध्य प्रदेश पुलिस, SSC एवं रेलवे की नंबर-1 ऑनलाइन तैयारी",
-                    subheading: "PW & Testbook पैटर्न पर आधारित एआई डाउट सॉल्वर एवं ऑल इंडिया रियल CBT मॉक टेस्ट।",
+                    subheading: "PW, RWA & Testbook पैटर्न पर आधारित लाइव बैचेस, एआई डाउट सॉल्वर एवं ऑल इंडिया रियल CBT मॉक टेस्ट।",
                     posterUrl: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
-                    tickerText: "🔥 MP Police Constable, SSC GD, UP Police & Railway Mock Tests + Advanced AI Doubt Solver Active!",
+                    tickerText: "🔥 MP Police Constable, SSC GD, UP Police & Railway Mock Tests + Live Batches, Notes & Advanced AI Doubt Solver Active!",
                     stat1Val: "50k+", stat1Lbl: "सक्रिय छात्र", stat2Val: "98%", stat2Lbl: "सफलता दर",
                     stat3Val: "TCS CBT", stat3Lbl: "रियल एग्जाम पैटर्न", stat4Val: "24/7 AI", stat4Lbl: "डाउट सॉल्वर"
                 });
@@ -378,7 +413,8 @@
                         { text_hi: 'मध्य प्रदेश का सबसे बड़ा राष्ट्रीय उद्यान कौन सा है?', text_en: 'Which is the largest National Park in Madhya Pradesh?', options_hi: ['कान्हा किसली', 'बांधवगढ़', 'पेंच', 'पन्ना'], options_en: ['Kanha Kisli', 'Bandhavgarh', 'Pench', 'Panna'], correctIdx: 0, imageUrl: '', explanation: 'कान्हा किसली राष्ट्रीय उद्यान मध्य प्रदेश का सबसे बड़ा है।' }
                     ]
                 }]);
-                window.state.db.drafts = safeJSONParse(DB_KEY_REVIEW, []);
+                window.state.db.batches = safeJSONParse(DB_KEY_BATCHES, [{ id: 'batch_1', title: 'MP Police Constable 2026 Selection Batch', targetExam: 'MP Police', price: '₹499', origPrice: '₹1999', banner: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=800&q=80', description: 'Complete Hindi Medium Live + Recorded Batch.', features: ['Live Classes', 'PDF Notes'] }]);
+                window.state.db.notes = safeJSONParse(DB_KEY_NOTES, []); window.state.db.drafts = safeJSONParse(DB_KEY_REVIEW, []);
                 window.state.db.submissions = safeJSONParse(DB_KEY_SUBMISSIONS, []); window.state.db.students = safeJSONParse(DB_KEY_STUDENTS_LIST, []);
                 window.state.db.blocked = safeJSONParse(DB_KEY_BLOCKED, []);
                 this.syncToLocalCache();
@@ -387,6 +423,7 @@
             syncToLocalCache() {
                 try {
                     localStorage.setItem(DB_KEY_CONTENT, JSON.stringify(window.state.db.content)); localStorage.setItem(DB_KEY_TESTS, JSON.stringify(window.state.db.tests));
+                    localStorage.setItem(DB_KEY_BATCHES, JSON.stringify(window.state.db.batches)); localStorage.setItem(DB_KEY_NOTES, JSON.stringify(window.state.db.notes));
                     localStorage.setItem(DB_KEY_REVIEW, JSON.stringify(window.state.db.drafts)); localStorage.setItem(DB_KEY_SUBMISSIONS, JSON.stringify(window.state.db.submissions));
                     localStorage.setItem(DB_KEY_STUDENTS_LIST, JSON.stringify(window.state.db.students)); localStorage.setItem(DB_KEY_BLOCKED, JSON.stringify(window.state.db.blocked));
                 } catch (e) { console.error("Local Storage save error:", e); }
@@ -394,31 +431,37 @@
 
             async saveDocument(collectionName, id, data) {
                 try {
+                    if (!collectionName || !id || !data || typeof data !== 'object') throw new Error('Invalid document payload');
                     if (this.isCloudActive && this.db) await this.db.collection(collectionName).doc(String(id)).set(data);
                     this.syncToLocalCache();
                     return { ok: true, cloud: !!(this.isCloudActive && this.db) };
                 } catch (e) {
+                    console.error(`Firestore save failed [${collectionName}/${id}]`, e);
                     this.syncToLocalCache();
+                    if (window.app?.showToast) window.app.showToast('Cloud save failed. Local data सुरक्षित रखा गया है।', 'error');
                     return { ok: false, error: e };
                 }
             },
             
             async deleteDocument(collectionName, id) {
                 try {
+                    if (!collectionName || !id) throw new Error('Invalid delete target');
                     if (this.isCloudActive && this.db) await this.db.collection(collectionName).doc(String(id)).delete();
                     this.syncToLocalCache();
                     return { ok: true, cloud: !!(this.isCloudActive && this.db) };
                 } catch (e) {
+                    console.error(`Firestore delete failed [${collectionName}/${id}]`, e);
                     this.syncToLocalCache();
+                    if (window.app?.showToast) window.app.showToast('Cloud delete failed. Local data सुरक्षित रखा गया है।', 'error');
                     return { ok: false, error: e };
                 }
             }
         };
 
         window.state = {
-            currentView: 'home', student: null, isAdmin: false, adminTab: 'ai-gen',
+            currentView: 'home', student: null, isAdmin: false, adminTab: 'students',
             cbtState: null, editingDraftId: null, lastSub: null, viewingAnalysisId: null,
-            db: {}
+            adminViewingStudent: null, aiDoubtHistory: [], db: {}
         };
 
         window.app = {
@@ -437,7 +480,9 @@
             },
 
             updateGlobalUI() { const tickerEl = document.getElementById('marquee-text'); if (tickerEl && window.state.db.content.tickerText) tickerEl.innerText = window.state.db.content.tickerText; },
-            typesetMath() { try { if (window.MathJax?.typesetPromise) window.MathJax.typesetPromise().catch(e => console.warn('MathJax:', e)); } catch (_) {} },
+            typesetMath() {
+                try { if (window.MathJax?.typesetPromise) window.MathJax.typesetPromise().catch(e => console.warn('MathJax:', e)); } catch (_) {}
+            },
 
             checkStoredSessions() {
                 const sStudent = safeJSONParse(DB_KEY_STUDENT, null); if (sStudent) { window.state.student = sStudent; this.updateStudentUI(); }
@@ -451,7 +496,7 @@
             },
 
             navigateTo(viewId) {
-                window.state.currentView = viewId; window.state.viewingAnalysisId = null;
+                window.state.currentView = viewId; window.state.viewingAnalysisId = null; window.state.adminViewingStudent = null;
                 window.scrollTo(0, 0); this.render();
             },
 
@@ -474,6 +519,8 @@
             closeMsgBox() { this.closeModal('msg-box-modal'); }, openModal(id) { document.getElementById(id).classList.remove('hidden'); }, closeModal(id) { document.getElementById(id).classList.add('hidden'); },
             openImagePreview(url) { if(!url) return; document.getElementById('preview-image-el').src = url; document.getElementById('image-preview-modal').classList.remove('hidden'); },
             closeImagePreview() { document.getElementById('image-preview-modal').classList.add('hidden'); document.getElementById('preview-image-el').src = ""; },
+            
+            fileToBase64(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = () => resolve(reader.result); reader.onerror = error => reject(error); }); },
 
             switchAuthTab(tab) {
                 const btnLogin = document.getElementById('tab-btn-login'), btnReg = document.getElementById('tab-btn-register'), formLogin = document.getElementById('form-student-login'), formReg = document.getElementById('form-student-register');
@@ -484,6 +531,7 @@
             async handleRegister(e) {
                 e.preventDefault();
                 const name = document.getElementById('reg-name').value.trim(), mobile = document.getElementById('reg-mobile').value.trim(), pin = document.getElementById('reg-pin').value.trim();
+                if (window.state.db.blocked.includes(mobile)) return this.showToast('यह मोबाइल नंबर ब्लॉक कर दिया गया है। Admin से संपर्क करें।', 'error');
                 let existing = window.state.db.students.find(s => s.mobile === mobile);
                 if (existing) { this.showToast('यह नंबर पहले से रजिस्टर्ड है। कृपया लॉगिन करें।', 'warning'); this.switchAuthTab('login'); document.getElementById('login-mobile').value = mobile; return; }
 
@@ -496,6 +544,7 @@
             async handleLogin(e) {
                 e.preventDefault();
                 const mobile = document.getElementById('login-mobile').value.trim(), pin = document.getElementById('login-pin').value.trim();
+                if (window.state.db.blocked.includes(mobile)) return this.showToast('यह मोबाइल नंबर ब्लॉक कर दिया गया है। Admin से संपर्क करें।', 'error');
                 let existing = window.state.db.students.find(s => s.mobile === mobile);
                 if (!existing) { this.showToast('नंबर रजिस्टर्ड नहीं है। कृपया पहले नया अकाउंट बनाएं।', 'error'); this.switchAuthTab('register'); document.getElementById('reg-mobile').value = mobile; return; }
 
@@ -508,7 +557,7 @@
             logoutStudent() { localStorage.removeItem(DB_KEY_STUDENT); window.state.student = null; this.updateStudentUI(); this.navigateTo('home'); },
 
             handleAdminNavClick() { if (window.state.isAdmin) this.navigateTo('admin-dashboard'); else this.openModal('modal-admin-login'); },
-            handleAdminLogin(e) { e.preventDefault(); if (document.getElementById('admin-user').value === 'admin' && document.getElementById('admin-pass').value === 'admin123') { window.state.isAdmin = true; localStorage.setItem(DB_KEY_ADMIN, 'true'); this.closeModal('modal-admin-login'); this.showToast('Admin Console Unlocked'); this.navigateTo('admin-dashboard'); } else document.getElementById('admin-error-msg').classList.remove('hidden'); },
+            handleAdminLogin(e) { e.preventDefault(); if (document.getElementById('admin-user').value === 'gaganlodhi' && document.getElementById('admin-pass').value === '161002') { window.state.isAdmin = true; localStorage.setItem(DB_KEY_ADMIN, 'true'); this.closeModal('modal-admin-login'); this.showToast('Admin Console Unlocked'); this.navigateTo('admin-dashboard'); } else document.getElementById('admin-error-msg').classList.remove('hidden'); },
             logoutAdmin() { window.state.isAdmin = false; localStorage.removeItem(DB_KEY_ADMIN); this.navigateTo('home'); },
 
             render() {
@@ -516,17 +565,20 @@
                 if (window.state.viewingAnalysisId) { container.innerHTML = this.renderDetailedAnalysisView(); return; }
                 switch(window.state.currentView) {
                     case 'home': container.innerHTML = this.renderHomeView(); break;
+                    case 'batches': container.innerHTML = this.renderBatchesView(); break;
                     case 'test-series': container.innerHTML = this.renderTestSeriesView(); break;
                     case 'cbt-exam': container.innerHTML = this.renderCbtExamView(); this.initCbtTimer(); break;
                     case 'result': container.innerHTML = this.renderResultView(); break;
+                    case 'ai-doubt': container.innerHTML = this.renderAiDoubtView(); break;
+                    case 'notes': container.innerHTML = this.renderNotesView(); break;
                     case 'leaderboard': container.innerHTML = this.renderLeaderboardView(); break;
-                    case 'admin-dashboard': if (!window.state.isAdmin) { this.navigateTo('home'); return; } container.innerHTML = this.renderAdminDashboardView(); break;
+                    case 'admin-dashboard': if (!window.state.isAdmin) { this.navigateTo('home'); return; } container.innerHTML = this.renderAdminDashboardView(); if(window.state.adminTab === 'manual-builder' && !document.querySelector('#mb-questions [data-q]')) this.addManualBuilderQuestion(); break;
                 }
                 this.typesetMath();
             },
 
             renderHomeView() {
-                const { content } = window.state.db;
+                const { content, batches } = window.state.db;
                 return `
                     <div class="space-y-12 pb-24">
                         <div class="bg-gradient-to-br from-slate-900 via-sky-950 to-indigo-950 text-white py-14 px-4 sm:px-6 lg:px-8 border-b border-slate-800 relative overflow-hidden">
@@ -540,6 +592,9 @@
                                     <div class="flex flex-wrap gap-4 pt-2">
                                         <button onclick="window.app.navigateTo('test-series')" class="bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black px-6 py-3.5 rounded-2xl shadow-xl transition transform hover:-translate-y-0.5 flex items-center gap-2 text-sm">
                                             <i class="fa-solid fa-bolt"></i> स्टार्ट लाइव मॉक टेस्ट
+                                        </button>
+                                        <button onclick="window.app.navigateTo('batches')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold px-6 py-3.5 rounded-2xl transition flex items-center gap-2 text-sm">
+                                            <i class="fa-solid fa-layer-group text-amber-400"></i> एक्सप्लोर बैचेस
                                         </button>
                                     </div>
                                 </div>
@@ -568,8 +623,193 @@
                                 <div><span class="block text-xl font-black text-white">${content.stat4Val}</span><span class="text-xs text-slate-400 font-devanagari">${content.stat4Lbl}</span></div>
                             </div>
                         </div>
+
+                        <div class="max-w-7xl mx-auto px-4 space-y-6">
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <h2 class="text-2xl font-black text-white font-devanagari">लोकप्रिय लाइव बैचेस (Popular Batches)</h2>
+                                    <p class="text-slate-400 text-xs font-devanagari mt-1">सर्वश्रेष्ठ शिक्षकों के साथ सफलता की तैयारी करें</p>
+                                </div>
+                                <button onclick="window.app.navigateTo('batches')" class="text-sky-400 hover:text-sky-300 text-xs font-bold font-devanagari flex items-center gap-1">सभी बैचेस <i class="fa-solid fa-arrow-right"></i></button>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                ${batches.slice(0, 2).map(b => `
+                                    <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-lg flex flex-col sm:flex-row hover:border-slate-700 transition">
+                                        <img src="${b.banner}" class="w-full sm:w-48 h-48 sm:h-auto object-cover shrink-0">
+                                        <div class="p-5 flex flex-col justify-between space-y-4 w-full">
+                                            <div>
+                                                <span class="px-2.5 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-[10px] font-bold uppercase tracking-wide">${b.targetExam}</span>
+                                                <h3 class="text-lg font-bold text-white font-devanagari mt-2 leading-snug">${b.title}</h3>
+                                                <p class="text-xs text-slate-400 font-devanagari line-clamp-2 mt-1">${b.description}</p>
+                                            </div>
+                                            <div class="flex items-center justify-between border-t border-slate-800 pt-3">
+                                                <div>
+                                                    <span class="text-xl font-black text-emerald-400">${b.price}</span>
+                                                    <span class="text-xs text-slate-500 line-through ml-1.5">${b.origPrice}</span>
+                                                </div>
+                                                <button onclick="window.app.openBatchDetails('${b.id}')" class="bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition font-devanagari">बैच विवरण</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
                     </div>
                 `;
+            },
+
+            renderBatchesView() {
+                const { batches } = window.state.db;
+                return `
+                    <div class="max-w-7xl mx-auto px-4 py-8 w-full space-y-8 pb-24">
+                        <div><h1 class="text-3xl font-black text-white font-devanagari">ऑनलाइन लाइव बैचेस</h1><p class="text-slate-400 text-xs font-devanagari mt-1">संपूर्ण सिलेबस बैचेस लाइव क्लासेज और नोट्स के साथ</p></div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            ${batches.map(b => `
+                                <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl flex flex-col justify-between hover:border-slate-700 transition">
+                                    <div>
+                                        <img src="${b.banner}" class="w-full h-48 object-cover">
+                                        <div class="p-6 space-y-4">
+                                            <span class="px-3 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-[10px] font-bold uppercase tracking-wider">${b.targetExam}</span>
+                                            <h3 class="text-lg font-bold text-white font-devanagari leading-snug">${b.title}</h3>
+                                            <p class="text-xs text-slate-400 font-devanagari line-clamp-2">${b.description}</p>
+                                            <ul class="space-y-2 pt-2">${b.features.map(f => `<li class="text-xs text-slate-300 font-devanagari flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i> ${f}</li>`).join('')}</ul>
+                                        </div>
+                                    </div>
+                                    <div class="p-6 pt-0 border-t border-slate-800/80 mt-4 flex items-center justify-between">
+                                        <div><span class="text-2xl font-black text-emerald-400">${b.price}</span><span class="text-xs text-slate-500 line-through ml-2">${b.origPrice}</span></div>
+                                        <button onclick="window.app.openBatchDetails('${b.id}')" class="bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg transition font-devanagari">Enroll Now</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            },
+            openBatchDetails(batchId) {
+                const b = window.state.db.batches.find(x => x.id === batchId);
+                if (b) this.showMessageBox(b.title, `लक्ष्य परीक्षा: ${b.targetExam}\nमूल्य: ${b.price} (डिस्काउंट मूल्य)\n\nविशेषताएं:\n- ${b.features.join('\n- ')}\n\nनामांकन करने के लिए एडमिन हेल्पलाइन या डायरेक्ट पोर्टल भुगतान का उपयोग करें।`, 'info');
+            },
+
+            renderNotesView() {
+                const { notes } = window.state.db;
+                return `
+                    <div class="max-w-7xl mx-auto px-4 py-8 space-y-8 pb-24">
+                        <div><h1 class="text-3xl font-black text-white font-devanagari">PDF नोट्स एवं अध्ययन सामग्री</h1><p class="text-slate-400 text-xs font-devanagari mt-1">हस्तलिखित नोट्स एवं पिछले वर्षों के प्रश्न पत्र (PDF Download)</p></div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            ${notes.map(n => `
+                                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between shadow-xl hover:border-slate-700 transition">
+                                    <div class="space-y-3"><span class="px-3 py-1 bg-rose-500/20 text-rose-400 rounded-full text-[10px] font-bold border border-rose-500/30">${n.subject}</span><h3 class="text-base font-bold text-white font-devanagari leading-snug">${n.title}</h3></div>
+                                    <a href="${n.pdfUrl}" target="_blank" class="mt-5 w-full bg-slate-800 hover:bg-rose-600 text-white font-bold py-2.5 rounded-xl text-xs transition border border-slate-700 font-devanagari flex items-center justify-center gap-2">
+                                        <i class="fa-solid fa-file-pdf text-rose-400"></i> नोट्स देखें / डाउनलोड करें
+                                    </a>
+                                </div>
+                            `).join('')}
+                            ${notes.length === 0 ? '<div class="col-span-full p-8 text-center text-slate-500">कोई नोट्स उपलब्ध नहीं हैं।</div>' : ''}
+                        </div>
+                    </div>
+                `;
+            },
+
+            renderAiDoubtView() {
+                return `
+                    <div class="max-w-4xl mx-auto px-4 py-8 w-full flex-grow flex flex-col pb-24">
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-t-3xl flex items-center justify-between shadow-xl">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center text-xl"><i class="fa-solid fa-robot"></i></div>
+                                <div>
+                                    <h2 class="text-lg font-bold text-white font-devanagari">AI Instant Doubt Solver</h2>
+                                    <p class="text-xs text-slate-400 font-devanagari">किसी भी विषय का सवाल पूछें, उत्तर तुरंत पाएं</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="ai-chat-box" class="bg-slate-950 border-x border-slate-800 flex-grow p-4 sm:p-6 space-y-4 min-h-[350px] max-h-[60vh] overflow-y-auto">
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-robot"></i></div>
+                                <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs sm:text-sm text-slate-200 font-devanagari max-w-[85%] leading-relaxed shadow-sm">
+                                    नमस्ते! मैं GLO Academy AI सहायता हूँ। गणित, रीजनिंग, एमपी जीके, या सामान्य ज्ञान का कोई भी प्रश्न यहाँ लिखें।
+                                </div>
+                            </div>
+                            ${window.state.aiDoubtHistory.map(chat => `
+                                <div class="flex items-start justify-end gap-3">
+                                    <div class="bg-sky-600 text-white p-4 rounded-2xl text-xs sm:text-sm font-devanagari max-w-[85%] leading-relaxed shadow-sm">${chat.user}</div>
+                                </div>
+                                <div class="flex items-start gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-robot"></i></div>
+                                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs sm:text-sm text-slate-200 font-devanagari max-w-[85%] leading-relaxed shadow-sm whitespace-pre-line">${chat.ai}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 p-4 rounded-b-3xl flex gap-3 shadow-xl">
+                            <input type="text" id="ai-doubt-input" placeholder="अपना प्रश्न यहाँ लिखें..." class="flex-grow px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-devanagari outline-none focus:ring-2 focus:ring-purple-500">
+                            <button onclick="window.app.askAiDoubt()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 py-3 rounded-xl text-sm transition shadow-lg flex items-center gap-2"><i class="fa-solid fa-paper-plane"></i> पूछें</button>
+                        </div>
+                    </div>
+                `;
+            },
+
+            async askAiDoubt() {
+                const input = document.getElementById('ai-doubt-input');
+                const query = input?.value.trim();
+                if (!query) return;
+                input.value = '';
+                const chatBox = document.getElementById('ai-chat-box');
+                const escapeHtml = value => String(value).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+                chatBox.innerHTML += `<div class="flex items-start justify-end gap-3"><div class="bg-sky-600 text-white p-4 rounded-2xl text-xs sm:text-sm font-devanagari max-w-[85%] leading-relaxed shadow-sm">${escapeHtml(query)}</div></div><div id="ai-loading-msg" class="flex items-start gap-3"><div class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-spinner animate-spin"></i></div><div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs sm:text-sm text-slate-400 font-devanagari">उत्तर प्राप्त किया जा रहा है...</div></div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+
+                const provider = getAIProvider();
+                const proxyUrl = getAIProxyUrl();
+                let aiReply = '';
+                try {
+                    if (proxyUrl) {
+                        const res = await fetch(proxyUrl, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ provider, task:'doubt', prompt:query }) });
+                        if (!res.ok) throw new Error(`Proxy Error: ${res.status}`);
+                        const data = await res.json();
+                        aiReply = data.reply || data.text || data.content || data?.choices?.[0]?.message?.content || data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                        if (!aiReply) throw new Error('Empty proxy response');
+                    } else {
+                        const key = getAIKey(provider);
+                        if (!key) throw new Error(`Missing ${provider} Key`);
+                        if (provider === 'openai' || provider === 'groq') {
+                            const endpoint = provider === 'openai' ? 'https://api.openai.com/v1/chat/completions' : 'https://api.groq.com/openai/v1/chat/completions';
+                            const model = provider === 'openai' ? 'gpt-4o-mini' : GROQ_MODEL;
+                            const res = await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`}, body:JSON.stringify({model,messages:[{role:'system',content:'You are an expert tutor for MP Police, SSC and Railway competitive exams in India. Answer clearly and concisely in Hindi.'},{role:'user',content:query}]}) });
+                            if (!res.ok) throw new Error(`${provider} Error: ${res.status}`);
+                            const data = await res.json(); aiReply = data?.choices?.[0]?.message?.content?.trim() || '';
+                        } else {
+                            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(key)}`;
+                            const res = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:`You are an expert tutor for MP Police, SSC and Railway competitive exams in India. Answer clearly and concisely in Hindi.\nQuestion: ${query}`}]}]})});
+                            if (!res.ok) throw new Error(`Gemini Error: ${res.status}`);
+                            const data = await res.json(); aiReply = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+                        }
+                        if (!aiReply) throw new Error('Empty AI response');
+                    }
+                } catch (e) {
+                    console.error('AI Chat Error:', e);
+                    const fallback = this.getOfflineAiFallback(query);
+                    aiReply = fallback || 'AI सेवा अभी उपलब्ध नहीं है। Admin Settings में secure proxy configure करें या session में API key दें।';
+                    this.showToast('AI unavailable — offline fallback used', 'error');
+                } finally {
+                    document.getElementById('ai-loading-msg')?.remove();
+                }
+                window.state.aiDoubtHistory.push({ user: query, ai: aiReply });
+                this.render();
+                setTimeout(() => { const box=document.getElementById('ai-chat-box'); if(box) box.scrollTop=box.scrollHeight; },100);
+            },
+
+            getOfflineAiFallback(query) {
+                const q = String(query).toLowerCase();
+                const kb = [
+                    { keys:['2+2','दो और दो'], answer:'2 + 2 = 4.' },
+                    { keys:['भारत की राजधानी','capital of india'], answer:'भारत की राजधानी नई दिल्ली है।' },
+                    { keys:['मध्य प्रदेश की राजधानी','capital of madhya pradesh'], answer:'मध्य प्रदेश की राजधानी भोपाल है।' },
+                    { keys:['बल का सूत्र','force formula'], answer:'न्यूटन के दूसरे नियम के अनुसार बल का सूत्र F = m × a है।' },
+                    { keys:['ओम का नियम','ohm'], answer:'ओम के नियम के अनुसार V = I × R.' }
+                ];
+                const hit = kb.find(item => item.keys.some(k => q.includes(k)));
+                return hit ? hit.answer : 'ऑफलाइन ज्ञान-आधार में इस प्रश्न का उत्तर उपलब्ध नहीं है। कृपया secure AI proxy/API सेवा उपलब्ध होने पर पुनः पूछें।';
             },
 
             renderTestSeriesView() {
@@ -655,14 +895,15 @@
                             <div class="flex-grow w-full lg:w-2/3 p-4 sm:p-6 flex flex-col overflow-y-auto pb-24 allow-select custom-scrollbar bg-white text-slate-900">
                                 <div class="space-y-4">
                                     <div class="flex justify-between items-center text-xs text-slate-500 border-b border-slate-200 pb-2 font-medium">
-                                        <span class="bg-slate-100 px-3 py-1 rounded-full text-slate-800 font-bold shadow-inner border border-slate-200 text-[10px] sm:text-xs">Q. ${cbt.currentIndex + 1} /${cbt.questions.length}</span>
+                                        <span class="bg-slate-100 px-3 py-1 rounded-full text-slate-800 font-bold shadow-inner border border-slate-200 text-[10px] sm:text-xs">Q. ${cbt.currentIndex + 1} / ${cbt.questions.length}</span>
                                         <span class="flex gap-2">
                                             <span class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-[10px] sm:text-xs">+1.0</span>
                                             <span class="text-rose-700 font-bold bg-rose-50 px-2 py-0.5 rounded border border-rose-200 text-[10px] sm:text-xs">-${cbt.negativeMarking}</span>
                                         </span>
                                     </div>
                                     <div class="space-y-3">
-                                        <h3 class="text-[15px] sm:text-lg font-bold font-devanagari text-slate-900 leading-relaxed tracking-wide">${q.text_hi}</h3>${q.text_en ? `<h3 class="text-xs sm:text-sm font-medium text-slate-600 leading-relaxed">${q.text_en}</h3>` : ''}
+                                        <h3 class="text-[15px] sm:text-lg font-bold font-devanagari text-slate-900 leading-relaxed tracking-wide">${q.text_hi}</h3>
+                                        ${q.text_en ? `<h3 class="text-xs sm:text-sm font-medium text-slate-600 leading-relaxed">${q.text_en}</h3>` : ''}
                                         ${q.imageUrl ? `<div class="mt-2 cursor-pointer relative group inline-block" onclick="window.app.openImagePreview('${q.imageUrl}')"><img src="${q.imageUrl}" class="max-w-full sm:max-w-md h-auto rounded-xl border border-slate-200 shadow-md"><div class="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-magnifying-glass-plus text-white text-3xl"></i></div></div>` : ''}
                                     </div>
                                     <div class="flex flex-col gap-3 pt-3">
@@ -851,15 +1092,19 @@
                 return `
                     <div class="max-w-5xl mx-auto px-4 py-8 space-y-6 pb-28">
                         <div class="flex justify-between items-center bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
-                            <div><h2 class="text-2xl font-black text-white font-devanagari">विस्तृत व्याख्या एवं हल (Detailed Analysis)</h2><p class="text-xs sm:text-sm text-slate-400 mt-1">${sub.testTitle} •${sub.studentName}</p></div>
+                            <div><h2 class="text-2xl font-black text-white font-devanagari">विस्तृत व्याख्या एवं हल (Detailed Analysis)</h2><p class="text-xs sm:text-sm text-slate-400 mt-1">${sub.testTitle} • ${sub.studentName}</p></div>
                             <button onclick="window.state.viewingAnalysisId = null; window.app.render();" class="bg-slate-800 hover:bg-slate-700 text-white text-xs px-4 py-2.5 rounded-xl border border-slate-700 font-bold transition"><i class="fa-solid fa-arrow-left mr-1"></i> Back</button>
                         </div>
+
+                        <!-- Summary Banner -->
                         <div class="bg-slate-900 text-white rounded-3xl p-6 shadow-xl border border-slate-800 grid grid-cols-2 md:grid-cols-4 gap-4 divide-x divide-slate-800">
                             <div class="text-center px-2"><div class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Score</div><div class="text-3xl font-black text-sky-400">${sub.score}</div></div>
                             <div class="text-center px-2"><div class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Correct</div><div class="text-2xl font-bold text-emerald-400">${sub.correct}</div></div>
                             <div class="text-center px-2"><div class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Incorrect</div><div class="text-2xl font-bold text-rose-400">${sub.incorrect}</div></div>
                             <div class="text-center px-2"><div class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Skipped</div><div class="text-2xl font-bold text-slate-300">${sub.unattempted}</div></div>
                         </div>
+
+                        <!-- Questions List -->
                         <div class="space-y-6">
                             ${sub.details.map((q, idx) => {
                                 let borderClass = q.isAttempted ? (q.isCorrect ? 'border-emerald-800/50' : 'border-rose-800/50') : 'border-slate-700';
@@ -879,6 +1124,8 @@
                                     </div>
                                     <div class="space-y-2">
                                         <h4 class="text-base sm:text-lg font-bold text-white font-devanagari leading-relaxed">${q.questionHi}</h4>
+                                        ${q.questionEn ? `<h4 class="text-sm font-medium text-slate-400 leading-relaxed">${q.questionEn}</h4>` : ''}
+                                        ${q.imageUrl ? `<img src="${q.imageUrl}" class="mt-4 max-w-md rounded-xl border border-slate-700 cursor-pointer shadow-md" onclick="window.app.openImagePreview('${q.imageUrl}')">` : ''}
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                                         ${q.optionsHi.map((opt, oIdx) => {
@@ -889,6 +1136,7 @@
                                         }).join('')}
                                     </div>
                                     <div class="mt-5 p-5 rounded-2xl bg-indigo-950/30 border border-indigo-800/40 space-y-2 relative overflow-hidden">
+                                        <div class="absolute -right-6 -top-6 w-20 h-20 bg-amber-500/10 rounded-full blur-xl pointer-events-none"></div>
                                         <h5 class="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-lightbulb text-amber-300"></i> व्याख्या (Explanation)</h5>
                                         <p class="font-devanagari leading-relaxed text-indigo-100 text-sm">${q.explanation}</p>
                                     </div>
@@ -909,12 +1157,13 @@
                         <div class="text-center space-y-3">
                             <div class="w-20 h-20 bg-yellow-500/10 text-yellow-500 rounded-3xl flex items-center justify-center mx-auto text-4xl border border-yellow-500/20 shadow-[0_0_30px_rgba(234,179,8,0.2)]"><i class="fa-solid fa-trophy"></i></div>
                             <h1 class="text-3xl sm:text-4xl font-black text-white font-devanagari">ऑल इंडिया लीडरबोर्ड</h1>
+                            <p class="text-slate-400 text-sm font-devanagari">शीर्ष प्रदर्शन करने वाले छात्रों की सूची (Top Performers)</p>
                         </div>
                         <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-sm text-slate-300 border-collapse">
                                     <thead class="bg-slate-950 text-slate-500 uppercase font-bold text-[10px] tracking-wider border-b border-slate-800">
-                                        <tr><th class="px-6 py-4">Rank</th><th class="px-6 py-4">Student Name</th><th class="px-6 py-4 text-right">Score</th><th class="px-6 py-4 text-right">Accuracy</th></tr>
+                                        <tr><th class="px-6 py-4">Rank</th><th class="px-6 py-4">Student Name</th><th class="px-6 py-4">Test Title</th><th class="px-6 py-4 text-right">Score</th><th class="px-6 py-4 text-right">Accuracy</th></tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-800/50">
                                         ${sorted.map((item, index) => {
@@ -926,12 +1175,13 @@
                                             return `
                                             <tr class="hover:bg-slate-800/50 transition duration-150">
                                                 <td class="px-6 py-4 font-black ${textClass} w-16 text-center">${rankIcon}</td>
-                                                <td class="px-6 py-4"><div class="font-bold text-white font-devanagari">${item.studentName}</div></td>
+                                                <td class="px-6 py-4"><div class="font-bold text-white font-devanagari">${item.studentName}</div><div class="text-[10px] text-slate-500 mt-0.5">${item.date.split(',')[0]}</div></td>
+                                                <td class="px-6 py-4 font-devanagari text-xs text-slate-400 max-w-[200px] truncate" title="${item.testTitle}">${item.testTitle}</td>
                                                 <td class="px-6 py-4 text-right"><span class="bg-emerald-950/40 text-emerald-400 border border-emerald-900/50 px-3 py-1 rounded-lg font-black">${item.score} <span class="text-[10px] font-bold text-emerald-600/70">/${item.totalMarks}</span></span></td>
                                                 <td class="px-6 py-4 font-bold text-sky-400 text-right">${item.percentage}%</td>
                                             </tr>
                                         `}).join('')}
-                                        ${sorted.length === 0 ? '<tr><td colspan="4" class="text-center py-12 text-slate-500 font-devanagari">कोई सबमिशन दर्ज नहीं है।</td></tr>' : ''}
+                                        ${sorted.length === 0 ? '<tr><td colspan="5" class="text-center py-12 text-slate-500 font-devanagari">कोई सबमिशन दर्ज नहीं है।</td></tr>' : ''}
                                     </tbody>
                                 </table>
                             </div>
@@ -948,7 +1198,7 @@
                                 <div class="w-14 h-14 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center text-3xl border border-amber-500/20 shadow-inner">
                                     <i class="fa-solid fa-shield-halved"></i>
                                 </div>
-                                <div><h1 class="text-2xl font-black tracking-tight">Admin Console</h1></div>
+                                <div><h1 class="text-2xl font-black tracking-tight">Admin Console</h1><p class="text-xs text-amber-500/70 font-mono mt-0.5">DB Connected: ${dbService.isCloudActive ? 'Cloud 🟢' : 'Local 🟡'}</p></div>
                             </div>
                             <button onclick="window.app.logoutAdmin()" class="bg-rose-950/60 hover:bg-rose-900 text-rose-400 hover:text-white border border-rose-800/50 px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
                                 <i class="fa-solid fa-power-off"></i> Lock Console
@@ -956,5 +1206,1002 @@
                         </div>
 
                         <div class="flex gap-2 border-b border-slate-800 pb-3 overflow-x-auto no-scrollbar shrink-0">
+                            <button onclick="window.app.setAdminTab('students')" class="shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs transition ${window.state.adminTab === 'students' ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}"><i class="fa-solid fa-users mr-1.5"></i> Students & Reports</button>
+                            <button onclick="window.app.setAdminTab('manual-builder')" class="shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs transition ${window.state.adminTab === 'manual-builder' ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}"><i class="fa-solid fa-keyboard mr-1.5"></i> Manual Test Builder</button>
                             <button onclick="window.app.setAdminTab('ai-gen')" class="shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs transition ${window.state.adminTab === 'ai-gen' ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}"><i class="fa-solid fa-robot mr-1.5"></i> AI Test Gen</button>
-                            <button onclick="window.app.setAdminTab('review')" class="shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs transition ${window.state.adminTab === 'review' ? 'bg-amber-500 text-slate-
+                            <button onclick="window.app.setAdminTab('review')" class="shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs transition ${window.state.adminTab === 'review' ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}"><i class="fa-solid fa-pen-to-square mr-1.5"></i> Drafts (Review)</button>
+                            <button onclick="window.app.setAdminTab('tests-mgr')" class="shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs transition ${window.state.adminTab === 'tests-mgr' ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}"><i class="fa-solid fa-vial-circle-check mr-1.5"></i> Live Tests</button>
+                            <button onclick="window.app.setAdminTab('batches')" class="shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs transition ${window.state.adminTab === 'batches' ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}"><i class="fa-solid fa-layer-group mr-1.5"></i> Batches</button>
+                            <button onclick="window.app.setAdminTab('notes')" class="shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs transition ${window.state.adminTab === 'notes' ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}"><i class="fa-solid fa-file-pdf mr-1.5"></i> PDF Notes</button>
+                            <button onclick="window.app.setAdminTab('settings')" class="shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs transition ${window.state.adminTab === 'settings' ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}"><i class="fa-solid fa-gear mr-1.5"></i> Settings</button>
+                        </div>
+                        <div class="flex-grow relative">${this.renderAdminTabContent()}</div>
+                    </div>
+                `;
+            },
+
+            renderAdminTabContent() {
+                const { students, submissions, blocked, drafts, tests, batches, notes, content } = window.state.db;
+
+                if (window.state.adminTab === 'settings') {
+                    const displayConfig = getStoredFirebaseConfig() || {};
+                    const displayConfigStr = Object.keys(displayConfig).length ? JSON.stringify(displayConfig, null, 2) : '';
+                    
+                    const savedGeminiKey = getAIKey('gemini');
+                    const savedOpenAIKey = getAIKey('openai');
+                    const savedGroqKey = getAIKey('groq');
+                    const activeProvider = getAIProvider();
+                    const savedProxyUrl = getAIProxyUrl();
+
+                    return `
+                        <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl max-w-4xl animate-[fadeIn_0.3s_ease-out]">
+                            <h3 class="text-xl font-black text-white mb-6 border-b border-slate-800 pb-4">Main Page & AI API Settings</h3>
+                            <div class="mb-6 bg-emerald-950/20 border border-emerald-900/40 p-4 rounded-2xl">
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                    <div><div class="text-sm font-black text-emerald-400">AI Engine Health Check</div><div class="text-[11px] text-slate-400">Provider, key और proxy configuration की तुरंत जाँच करें।</div></div>
+                                    <button onclick="window.app.testAIConnection()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-4 py-2 rounded-xl text-xs"><i class="fa-solid fa-plug mr-1"></i> Test AI Connection</button>
+                                </div>
+                                <div id="ai-health-result" class="text-[11px] mt-3 text-slate-500"></div>
+                            </div>
+                            
+                            <div class="space-y-4 mb-8 bg-purple-950/20 border border-purple-900/30 p-5 rounded-2xl relative overflow-hidden">
+                                <h4 class="font-bold text-purple-400 text-sm border-b border-purple-900/30 pb-2 flex items-center gap-2"><i class="fa-solid fa-microchip"></i> Local App AI Setup (Tri-AI Engine)</h4>
+                                <p class="text-xs text-purple-200 font-devanagari leading-relaxed">
+                                    You can now seamlessly switch between Google Gemini, OpenAI, and Groq AI for instant test generation and doubt solving.
+                                </p>
+                                
+                                <div class="mb-4">
+                                    <label class="block text-xs font-bold text-purple-300 mb-1">Active AI Provider (Select Best)</label>
+                                    <select id="set-ai-provider" class="w-full px-4 py-2.5 bg-slate-950 border border-purple-900/50 rounded-xl text-sm text-purple-100 font-bold outline-none focus:border-purple-500 transition">
+                                        <option value="groq" ${activeProvider === 'groq' ? 'selected' : ''}>Groq AI (Fastest / gsk_...)</option>
+                                        <option value="gemini" ${activeProvider === 'gemini' ? 'selected' : ''}>Google Gemini (Free / AQ. or AIza...)</option>
+                                        <option value="openai" ${activeProvider === 'openai' ? 'selected' : ''}>OpenAI ChatGPT (Highly Accurate / sk-...)</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="block text-xs font-bold text-purple-300 mb-1">Secure AI Proxy URL (Recommended for production)</label>
+                                    <input type="url" id="set-ai-proxy" value="${savedProxyUrl}" placeholder="https://your-domain.example/api/ai" class="w-full px-4 py-2.5 bg-slate-950 border border-purple-900/50 rounded-xl text-sm text-purple-100 font-mono focus:border-purple-500 outline-none transition">
+                                    <p class="text-[10px] text-slate-500 mt-1">Proxy mode keeps provider API secrets on your server. Leave blank only for temporary session-only browser API keys.</p>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Groq API Key (gsk_...)</label>
+                                        <input type="password" id="set-groq-key" value="${savedGroqKey}" class="w-full px-4 py-2.5 bg-slate-950 border border-purple-900/50 rounded-xl text-sm text-purple-100 font-mono focus:border-purple-500 outline-none transition" placeholder="gsk_...">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Google Gemini API Key</label>
+                                        <input type="password" id="set-gemini-key" value="${savedGeminiKey}" class="w-full px-4 py-2.5 bg-slate-950 border border-purple-900/50 rounded-xl text-sm text-purple-100 font-mono focus:border-purple-500 outline-none transition" placeholder="AQ. or AIzaSy...">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">OpenAI API Key</label>
+                                        <input type="password" id="set-openai-key" value="${savedOpenAIKey}" class="w-full px-4 py-2.5 bg-slate-950 border border-purple-900/50 rounded-xl text-sm text-purple-100 font-mono focus:border-purple-500 outline-none transition" placeholder="sk-proj-...">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+                                <div class="space-y-5">
+                                    <h4 class="font-bold text-sky-400 text-sm border-b border-slate-800 pb-2">Hero Section</h4>
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Main Heading</label><input type="text" id="set-heading" value="${content.heading}" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white font-devanagari focus:border-indigo-500 outline-none transition"></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Subheading</label><textarea id="set-subheading" rows="3" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white font-devanagari focus:border-indigo-500 outline-none transition resize-none">${content.subheading}</textarea></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Ticker Text</label><textarea id="set-ticker" rows="2" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-amber-400 font-devanagari focus:border-amber-500 outline-none transition resize-none">${content.tickerText || ''}</textarea></div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Banner Setup</label>
+                                        <div class="flex flex-col gap-2">
+                                            <input type="text" id="set-poster" value="${content.posterUrl}" placeholder="Image URL..." class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:border-indigo-500 outline-none transition">
+                                            <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"><i class="fa-solid fa-upload"></i> Upload Local Image<input type="file" accept="image/*" class="hidden" onchange="window.app.handleAdminImageUpload(event, 'set-poster')"></label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    <h4 class="font-bold text-sky-400 text-sm border-b border-slate-800 pb-2">Statistics Blocks</h4>
+                                    <div class="grid grid-cols-2 gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                        <div class="col-span-2 text-[10px] text-slate-500 font-bold uppercase"><i class="fa-solid fa-users text-sky-400 mr-1"></i> Stat Block 1</div>
+                                        <input type="text" id="s1-val" value="${content.stat1Val}" placeholder="Value" class="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white outline-none">
+                                        <input type="text" id="s1-lbl" value="${content.stat1Lbl}" placeholder="Label" class="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white outline-none font-devanagari">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                        <div class="col-span-2 text-[10px] text-slate-500 font-bold uppercase"><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Stat Block 2</div>
+                                        <input type="text" id="s2-val" value="${content.stat2Val}" placeholder="Value" class="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white outline-none">
+                                        <input type="text" id="s2-lbl" value="${content.stat2Lbl}" placeholder="Label" class="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white outline-none font-devanagari">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                        <div class="col-span-2 text-[10px] text-slate-500 font-bold uppercase"><i class="fa-solid fa-laptop-code text-amber-400 mr-1"></i> Stat Block 3</div>
+                                        <input type="text" id="s3-val" value="${content.stat3Val}" placeholder="Value" class="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white outline-none">
+                                        <input type="text" id="s3-lbl" value="${content.stat3Lbl}" placeholder="Label" class="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white outline-none font-devanagari">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                        <div class="col-span-2 text-[10px] text-slate-500 font-bold uppercase"><i class="fa-solid fa-robot text-purple-400 mr-1"></i> Stat Block 4</div>
+                                        <input type="text" id="s4-val" value="${content.stat4Val}" placeholder="Value" class="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white outline-none">
+                                        <input type="text" id="s4-lbl" value="${content.stat4Lbl}" placeholder="Label" class="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white outline-none font-devanagari">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="pt-6 mt-4 border-t border-slate-800">
+                                <button onclick="window.app.saveSiteSettings()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-3.5 rounded-xl text-sm shadow-[0_0_15px_rgba(79,70,229,0.3)] transition w-full transform hover:-translate-y-0.5">
+                                    <i class="fa-solid fa-floppy-disk mr-2"></i> Save & Apply Settings
+                                </button>
+                            </div>
+
+                            <div class="space-y-4 mt-10 border-t border-slate-800 pt-6">
+                                <h4 class="font-bold text-amber-400 text-sm border-b border-slate-800 pb-2 flex items-center gap-2"><i class="fa-solid fa-cloud"></i> Free Live Cloud Sync (Firebase)</h4>
+                                <textarea id="set-firebase-config" rows="10" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-emerald-400 font-mono focus:border-amber-500 outline-none transition resize-none" placeholder='{"apiKey": "...", "authDomain": "...", "projectId": "..."}'>${displayConfigStr}</textarea>
+                                <button onclick="window.app.saveFirebaseConfig()" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold px-6 py-3 rounded-xl text-xs shadow-lg transition w-full flex items-center justify-center gap-2"><i class="fa-solid fa-bolt"></i> Enable Real-Time Sync</button>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (window.state.adminTab === 'students') {
+                    if (window.state.adminViewingStudent) return this.renderAdminStudentDetails();
+                    const studentStats = students.map(st => {
+                        const stSubs = submissions.filter(s => s.mobile === st.mobile);
+                        return { ...st, testsTaken: stSubs.length, avgScore: stSubs.length > 0 ? (stSubs.reduce((acc, curr) => acc + parseFloat(curr.score), 0) / stSubs.length).toFixed(1) : 0, isBlocked: blocked.some(b => b.mobile === st.mobile) };
+                    });
+
+                    return `
+                        <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl animate-[fadeIn_0.3s_ease-out]">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                                <div><h3 class="text-xl font-black text-white">Student Database</h3><p class="text-xs text-slate-400 mt-1">Total Registered: ${students.length}</p></div>
+                                <div class="relative w-full sm:w-auto">
+                                    <input type="text" placeholder="Search name or number..." onkeyup="window.app.filterStudents(this.value)" class="pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white w-full sm:w-72 focus:border-amber-500 outline-none transition">
+                                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-500"></i>
+                                </div>
+                            </div>
+                            <div class="overflow-x-auto rounded-2xl border border-slate-800">
+                                <table class="w-full text-left border-collapse whitespace-nowrap" id="admin-students-table">
+                                    <thead><tr class="bg-slate-950 text-slate-500 text-[10px] uppercase font-bold tracking-wider"><th class="p-4 border-b border-slate-800">Student Info</th><th class="p-4 border-b border-slate-800">Tests</th><th class="p-4 border-b border-slate-800">Avg Score</th><th class="p-4 border-b border-slate-800">Status</th><th class="p-4 border-b border-slate-800 text-right">Actions</th></tr></thead>
+                                    <tbody class="divide-y divide-slate-800/50">
+                                        ${studentStats.map(st => `
+                                            <tr class="hover:bg-slate-800/50 transition student-row" data-search="${st.name.toLowerCase()} ${st.mobile}">
+                                                <td class="p-4"><div class="font-bold text-slate-200">${st.name}</div><div class="text-xs font-mono text-slate-500 mt-0.5">${st.mobile}</div></td>
+                                                <td class="p-4"><span class="bg-indigo-950/50 text-indigo-400 border border-indigo-900/50 px-2.5 py-1 rounded-lg font-bold text-xs">${st.testsTaken}</span></td>
+                                                <td class="p-4 font-bold text-emerald-400">${st.avgScore}</td>
+                                                <td class="p-4"><span class="text-xs font-bold ${st.isBlocked ? 'text-rose-400' : 'text-emerald-400'}">${st.isBlocked ? 'BLOCKED' : 'ACTIVE'}</span></td>
+                                                <td class="p-4 text-right space-x-2">
+                                                    <button onclick="window.app.toggleBlockUser('${st.mobile}')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${st.isBlocked ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 hover:bg-emerald-900/60' : 'bg-rose-950/60 text-rose-400 border border-rose-800/50 hover:bg-rose-900/60'}">${st.isBlocked ? 'Unblock' : 'Block'}</button>
+                                                    <button onclick="window.app.viewStudentDetails('${st.mobile}')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm"><i class="fa-solid fa-chart-line mr-1"></i> Report</button>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                        ${studentStats.length === 0 ? '<tr><td colspan="5" class="p-8 text-center text-slate-500">No students registered yet.</td></tr>' : ''}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (window.state.adminTab === 'ai-gen') {
+                    return `
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-[fadeIn_0.3s_ease-out]">
+                            <div class="bg-slate-900 text-white p-6 rounded-3xl border border-slate-800 shadow-xl space-y-5 relative overflow-hidden">
+                                <div class="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-bl-full pointer-events-none"></div>
+                                <div><h3 class="text-lg font-bold text-sky-400 flex items-center gap-2"><i class="fa-solid fa-file-lines text-2xl"></i> Text to Draft</h3><p class="text-xs text-slate-400 mt-1 font-devanagari">पैराग्राफ/टेक्स्ट से 2–200 MCQ बनाएं। (Review Bank)</p></div>
+                                <div><input type="text" id="ai-test-title" placeholder="Enter Test Title" class="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-sm outline-none focus:border-sky-500 transition"></div>
+                                <div><input type="number" id="ai-q-count" value="10" min="2" max="200" placeholder="Number of MCQs (2-200)" class="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-sm outline-none focus:border-sky-500 transition"></div>
+                                <div><textarea id="ai-source-text" rows="5" placeholder="Paste study material or text here..." class="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-sm outline-none focus:border-sky-500 transition resize-none"></textarea></div>
+                                <button onclick="window.app.generateAITest('text')" id="btn-ai-text" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-black px-6 py-3.5 rounded-xl text-sm transition shadow-[0_0_15px_rgba(14,165,233,0.3)]">Generate & Send to Drafts</button>
+                            </div>
+                            <div class="bg-slate-900 text-white p-6 rounded-3xl border border-slate-800 shadow-xl space-y-5 relative overflow-hidden">
+                                <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-bl-full pointer-events-none"></div>
+                                <div><h3 class="text-lg font-bold text-emerald-400 flex items-center gap-2"><i class="fa-solid fa-bolt text-2xl"></i> Topic to Live Test</h3><p class="text-xs text-slate-400 mt-1 font-devanagari">टॉपिक दें और 2–200 प्रश्नों का लाइव CBT टेस्ट बनाएं।</p></div>
+                                <div><input type="text" id="ai-topic-name" placeholder="E.g., Indian History, Biology..." class="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-sm outline-none focus:border-emerald-500 transition"></div>
+                                <div><input type="number" id="ai-topic-count" value="10" min="2" max="200" placeholder="Number of MCQs" class="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-sm outline-none focus:border-emerald-500 transition"></div>
+                                <button onclick="window.app.generateAITest('topic')" id="btn-ai-topic" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black px-6 py-3.5 rounded-xl text-sm transition shadow-[0_0_15px_rgba(16,185,129,0.3)] mt-auto">Auto Create & Publish Live</button>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (window.state.adminTab === 'review') {
+                    if (window.state.editingDraftId) return this.renderDraftEditor();
+                    return `
+                        <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl animate-[fadeIn_0.3s_ease-out]">
+                            <h3 class="text-xl font-black text-white mb-6">Review Bank (Drafts)</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                                ${drafts.map(d => `
+                                    <div class="flex flex-col justify-between p-5 bg-slate-950 border border-slate-800 rounded-2xl hover:border-sky-500/50 transition shadow-md group">
+                                        <div class="mb-5">
+                                            <div class="flex justify-between items-start mb-3">
+                                                <span class="bg-slate-800 text-slate-400 text-[10px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wider">Draft</span>
+                                                <span class="text-[10px] font-bold text-sky-400 bg-sky-950/60 border border-sky-800/50 px-2 py-0.5 rounded">${d.questions.length} Qs</span>
+                                            </div>
+                                            <h4 class="font-bold text-slate-200 leading-snug">${d.title}</h4>
+                                        </div>
+                                        <div class="flex gap-2 pt-4 border-t border-slate-800">
+                                            <button onclick="window.app.deleteDraft('${d.id}')" class="text-rose-400 hover:text-white hover:bg-rose-600 bg-slate-900 px-3 py-2 rounded-xl border border-slate-700 hover:border-rose-600 font-bold text-xs transition flex items-center justify-center w-12" title="Delete Draft"><i class="fa-solid fa-trash-can"></i></button>
+                                            <button onclick="window.app.editDraft('${d.id}')" class="flex-1 text-slate-950 bg-sky-500 hover:bg-sky-400 px-4 py-2 rounded-xl font-black text-xs shadow transition flex items-center justify-center gap-2"><i class="fa-solid fa-pen-nib"></i> Review & Setup</button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                                ${drafts.length===0 ? '<div class="col-span-full p-10 text-center text-slate-500 bg-slate-950 border border-dashed border-slate-800 rounded-2xl">No tests pending review. Generate from AI Test Gen tab.</div>' : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (window.state.adminTab === 'manual-builder') {
+                    return `
+                      <div class="bg-slate-900 p-5 sm:p-7 rounded-3xl border border-slate-800 shadow-xl space-y-5">
+                        <div><h3 class="text-xl font-black text-amber-400"><i class="fa-solid fa-keyboard mr-2"></i>Manual Test Builder</h3><p class="text-xs text-slate-400 mt-1">20–50 प्रश्न खुद टाइप करें, सही विकल्प चुनें और timer के साथ publish करें।</p></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <input id="mb-title" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-sm" placeholder="Test title" />
+                          <input id="mb-category" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-sm" value="General Test" placeholder="Category" />
+                          <label class="text-xs text-slate-400">Duration (minutes)<input id="mb-duration" type="number" min="1" value="30" class="block w-full mt-1 p-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm"/></label>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-2"><span id="mb-count" class="text-xs font-bold text-sky-400">0 / 50 Questions</span><button onclick="window.app.addManualBuilderQuestion()" class="bg-sky-600 hover:bg-sky-500 px-4 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-plus mr-1"></i>Add Question</button></div>
+                        <div id="mb-questions" class="space-y-4"></div>
+                        <div class="flex flex-col sm:flex-row gap-3"><button onclick="window.app.publishManualBuilderTest()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl font-black text-sm">Save & Publish Test</button><button onclick="window.app.resetManualBuilder()" class="bg-slate-800 border border-slate-700 px-5 py-3 rounded-xl font-bold text-sm">Clear</button></div>
+                      </div>`;
+                }
+
+                if (window.state.adminTab === 'tests-mgr') {
+                    return `
+                        <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl animate-[fadeIn_0.3s_ease-out]">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-xl font-black text-white">Live Published Tests</h3>
+                                <button onclick="window.app.openAddTestModal()" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow"><i class="fa-solid fa-plus mr-1"></i> Add Manual Test</button>
+                            </div>
+                            <div class="space-y-3">
+                                ${tests.map(t => `
+                                    <div class="flex flex-col sm:flex-row justify-between items-center p-5 bg-slate-950 border border-slate-800 rounded-2xl hover:border-slate-700 transition gap-4">
+                                        <div class="w-full sm:w-auto">
+                                            <div class="flex items-center gap-2 mb-1"><span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-bold uppercase tracking-wider">${t.category}</span></div>
+                                            <h4 class="font-bold text-white text-base">${t.title}</h4>
+                                            <div class="flex gap-4 mt-2 text-xs text-slate-400 font-medium">
+                                                <span class="flex items-center gap-1"><i class="fa-solid fa-stopwatch text-slate-500"></i> ${t.duration} Min</span>
+                                                <span class="flex items-center gap-1"><i class="fa-solid fa-list-check text-slate-500"></i> ${t.questions.length} Qs</span>
+                                                <span class="flex items-center gap-1 text-rose-400"><i class="fa-solid fa-minus text-rose-500/70"></i> ${t.negativeMarking} Neg.</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex gap-2 w-full sm:w-auto shrink-0">
+                                            <button onclick="window.app.deleteLiveTest('${t.id}')" class="w-full sm:w-auto text-rose-400 hover:text-white font-bold text-xs bg-slate-900 hover:bg-rose-600 px-4 py-2.5 rounded-xl border border-slate-700 hover:border-rose-600 transition shadow-sm flex items-center justify-center gap-2"><i class="fa-solid fa-trash"></i> Unpublish</button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                                ${tests.length === 0 ? '<div class="p-10 text-center text-slate-500 bg-slate-950 border border-dashed border-slate-800 rounded-2xl">No live tests currently.</div>' : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (window.state.adminTab === 'batches') {
+                    return `
+                        <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl animate-[fadeIn_0.3s_ease-out]">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-xl font-black text-white font-devanagari">बैच सूची (Batches List)</h3>
+                                <button onclick="window.app.openAddBatchModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition shadow-lg"><i class="fa-solid fa-plus mr-1"></i> नया बैच जोड़ें</button>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                ${batches.map(b => `
+                                    <div class="bg-slate-950 border border-slate-800 p-5 rounded-2xl flex items-center justify-between gap-4">
+                                        <img src="${b.banner}" class="w-16 h-16 rounded-xl object-cover border border-slate-700 shrink-0">
+                                        <div class="flex-grow">
+                                            <h4 class="font-bold text-white text-sm line-clamp-1 font-devanagari">${b.title}</h4>
+                                            <p class="text-xs text-slate-400 mt-1">Price: <span class="text-emerald-400 font-bold">${b.price}</span> | Target: ${b.targetExam}</p>
+                                        </div>
+                                        <button onclick="window.app.deleteBatch('${b.id}')" class="text-rose-400 hover:text-white hover:bg-rose-600 bg-slate-900 p-2.5 rounded-xl border border-slate-700 transition shrink-0"><i class="fa-solid fa-trash"></i></button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (window.state.adminTab === 'notes') {
+                    return `
+                        <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl animate-[fadeIn_0.3s_ease-out]">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-xl font-black text-white font-devanagari">नोट्स सूची (PDF Notes)</h3>
+                                <button onclick="window.app.openAddNoteModal()" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition shadow-lg"><i class="fa-solid fa-plus mr-1"></i> नया नोट जोड़ें</button>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                ${notes.map(n => `
+                                    <div class="bg-slate-950 border border-slate-800 p-5 rounded-2xl flex items-center justify-between gap-4">
+                                        <div class="w-12 h-12 bg-rose-500/20 text-rose-400 rounded-xl flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-file-pdf"></i></div>
+                                        <div class="flex-grow"><h4 class="font-bold text-white text-sm line-clamp-1 font-devanagari">${n.title}</h4><p class="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-wider">${n.subject}</p></div>
+                                        <button onclick="window.app.deleteNote('${n.id}')" class="text-rose-400 hover:text-white hover:bg-rose-600 bg-slate-900 p-2.5 rounded-xl border border-slate-700 transition shrink-0"><i class="fa-solid fa-trash"></i></button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            },
+
+            viewStudentDetails(mobile) { window.state.adminViewingStudent = window.state.db.students.find(s => s.mobile === mobile); this.render(); },
+            closeStudentDetails() { window.state.adminViewingStudent = null; this.render(); },
+
+            renderAdminStudentDetails() {
+                const st = window.state.adminViewingStudent; const subs = window.state.db.submissions.filter(s => s.mobile === st.mobile);
+                return `
+                    <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl animate-[fadeIn_0.3s_ease-out]">
+                        <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+                            <div class="flex items-center gap-4">
+                                <button onclick="window.app.closeStudentDetails()" class="w-10 h-10 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-full flex items-center justify-center text-white transition shadow"><i class="fa-solid fa-arrow-left"></i></button>
+                                <div><h3 class="text-xl font-black text-white font-devanagari">${st.name}</h3><p class="text-xs font-mono text-slate-400 mt-1"><i class="fa-solid fa-phone text-[10px]"></i> ${st.mobile} | Last active: ${st.loginTime}</p></div>
+                            </div>
+                            <div class="text-right hidden sm:block bg-indigo-950/40 border border-indigo-900/50 px-4 py-2 rounded-xl">
+                                <div class="text-2xl font-black text-indigo-400">${subs.length}</div><div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Total Tests</div>
+                            </div>
+                        </div>
+                        <h4 class="font-bold text-slate-300 mb-4 uppercase text-xs tracking-widest">Detailed Test History</h4>
+                        <div class="space-y-4">
+                            ${subs.map((s, idx) => `
+                                <div class="border border-slate-700 rounded-2xl p-5 bg-slate-950 flex flex-col sm:flex-row justify-between sm:items-center gap-5 shadow-inner">
+                                    <div class="w-full sm:w-1/2">
+                                        <div class="flex items-center gap-3 mb-2"><span class="bg-slate-800 text-slate-300 text-[10px] px-2.5 py-1 rounded-md font-bold border border-slate-700">Attempt ${subs.length - idx}</span><span class="text-[10px] text-slate-500 font-bold"><i class="fa-regular fa-calendar"></i> ${s.date}</span></div>
+                                        <h5 class="font-bold text-slate-200 text-sm truncate font-devanagari" title="${s.testTitle}">${s.testTitle}</h5>
+                                    </div>
+                                    <div class="flex gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                                        <div class="text-center bg-slate-900 px-4 py-2 rounded-xl border border-slate-800 shadow-sm"><div class="text-[10px] text-slate-500 uppercase font-bold mb-0.5">Score</div><div class="font-black text-emerald-400">${s.score} <span class="text-[10px] text-slate-600">/${s.totalMarks}</span></div></div>
+                                        <div class="text-center bg-slate-900 px-4 py-2 rounded-xl border border-slate-800 shadow-sm"><div class="text-[10px] text-slate-500 uppercase font-bold mb-0.5">Accuracy</div><div class="font-black text-sky-400">${s.percentage}%</div></div>
+                                    </div>
+                                    <button onclick="window.app.viewDetailedSolutions('${s.id}')" class="text-indigo-400 bg-indigo-950/40 hover:bg-indigo-900 border border-indigo-900/50 px-4 py-3 rounded-xl text-xs font-bold transition whitespace-nowrap"><i class="fa-solid fa-list-check mr-1"></i> Answers</button>
+                                </div>
+                            `).reverse().join('')}
+                            ${subs.length === 0 ? '<p class="text-slate-500 italic p-6 text-center border border-dashed border-slate-800 rounded-2xl bg-slate-950">No tests taken by this student yet.</p>' : ''}
+                        </div>
+                    </div>
+                `;
+            },
+
+            filterStudents(query) {
+                const q = query.toLowerCase(); const rows = document.querySelectorAll('#admin-students-table tbody .student-row');
+                rows.forEach(row => { const searchableText = row.getAttribute('data-search'); if (searchableText.includes(q)) row.style.display = ''; else row.style.display = 'none'; });
+            },
+            
+            async toggleBlockUser(mobile) {
+                const isBlocked = window.state.db.blocked.includes(mobile);
+                if (isBlocked) window.state.db.blocked = window.state.db.blocked.filter(m => m !== mobile); else window.state.db.blocked.push(mobile);
+                await dbService.saveDocument('settings', 'blocked', { list: window.state.db.blocked }); this.showToast('Student security status updated!'); this.render();
+            },
+
+            openAddBatchModal() {
+                const modalHtml = `
+                    <div id="modal-add-batch" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 modal-enter-active">
+                        <div class="bg-slate-900 border border-slate-700 text-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+                            <button onclick="document.getElementById('modal-add-batch').remove()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+                            <h3 class="text-xl font-black font-devanagari mb-4 border-b border-slate-800 pb-2">नया बैच जोड़ें</h3>
+                            <form onsubmit="window.app.saveNewBatch(event)" class="space-y-4">
+                                <div><label class="block text-xs font-bold text-slate-400 mb-1">Batch Title *</label><input type="text" id="add-b-title" required class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm outline-none font-devanagari"></div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div><label class="block text-xs font-bold text-slate-400 mb-1">Target Exam *</label><input type="text" id="add-b-exam" required class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm outline-none"></div>
+                                    <div><label class="block text-xs font-bold text-slate-400 mb-1">Discount Price *</label><input type="text" id="add-b-price" required placeholder="₹499" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm outline-none"></div>
+                                </div>
+                                <div><label class="block text-xs font-bold text-slate-400 mb-1">Original Price (Strike) *</label><input type="text" id="add-b-orig" required placeholder="₹999" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm outline-none"></div>
+                                <div><label class="block text-xs font-bold text-slate-400 mb-1">Description *</label><textarea id="add-b-desc" required rows="2" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm outline-none resize-none font-devanagari"></textarea></div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 mb-1">Banner Image</label>
+                                    <div class="flex gap-2">
+                                        <input type="text" id="add-b-banner" placeholder="Image URL..." class="flex-grow px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs outline-none">
+                                        <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center shrink-0"><i class="fa-solid fa-upload"></i><input type="file" accept="image/*" class="hidden" onchange="window.app.handleAdminImageUpload(event, 'add-b-banner')"></label>
+                                    </div>
+                                </div>
+                                <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl shadow-lg transition text-sm">Save Batch</button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+            },
+
+            async saveNewBatch(e) {
+                e.preventDefault();
+                const newBatch = { id: 'batch_' + Date.now(), title: document.getElementById('add-b-title').value.trim(), targetExam: document.getElementById('add-b-exam').value.trim(), price: document.getElementById('add-b-price').value.trim(), origPrice: document.getElementById('add-b-orig').value.trim(), banner: document.getElementById('add-b-banner').value.trim() || 'https://placehold.co/600x400/0f172a/38bdf8?text=Batch', description: document.getElementById('add-b-desc').value.trim(), features: ['Daily Live Classes', 'PDF Notes', 'CBT Engine'] };
+                window.state.db.batches.unshift(newBatch); await dbService.saveDocument('batches', newBatch.id, newBatch); document.getElementById('modal-add-batch').remove(); this.showToast('Batch added successfully!'); this.render();
+            },
+            
+            async deleteBatch(id) { window.state.db.batches = window.state.db.batches.filter(b => b.id !== id); await dbService.deleteDocument('batches', id); this.showToast('Batch deleted', 'error'); this.render(); },
+
+            openAddNoteModal() {
+                const modalHtml = `
+                    <div id="modal-add-note" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 modal-enter-active">
+                        <div class="bg-slate-900 border border-slate-700 text-white rounded-3xl max-w-sm w-full p-6 shadow-2xl relative">
+                            <button onclick="document.getElementById('modal-add-note').remove()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+                            <h3 class="text-xl font-black font-devanagari mb-4 border-b border-slate-800 pb-2">नया नोट जोड़ें</h3>
+                            <form onsubmit="window.app.saveNewNote(event)" class="space-y-4">
+                                <div><label class="block text-xs font-bold text-slate-400 mb-1">Title *</label><input type="text" id="add-n-title" required class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm outline-none font-devanagari"></div>
+                                <div><label class="block text-xs font-bold text-slate-400 mb-1">Subject *</label><input type="text" id="add-n-sub" required placeholder="E.g., History, Math" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm outline-none"></div>
+                                <div><label class="block text-xs font-bold text-slate-400 mb-1">PDF URL *</label><input type="url" id="add-n-url" required placeholder="https://..." class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm outline-none"></div>
+                                <button type="submit" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-black py-3 rounded-xl shadow-lg transition text-sm">Save Note</button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+            },
+            
+            async saveNewNote(e) {
+                e.preventDefault();
+                const newNote = { id: 'note_' + Date.now(), title: document.getElementById('add-n-title').value.trim(), subject: document.getElementById('add-n-sub').value.trim(), pdfUrl: document.getElementById('add-n-url').value.trim() };
+                window.state.db.notes.unshift(newNote); await dbService.saveDocument('notes', newNote.id, newNote); document.getElementById('modal-add-note').remove(); this.showToast('Note added successfully!'); this.render();
+            },
+            
+            async deleteNote(id) { window.state.db.notes = window.state.db.notes.filter(n => n.id !== id); await dbService.deleteDocument('notes', id); this.showToast('Note deleted', 'error'); this.render(); },
+
+            manualBuilderCount: 0,
+            addManualBuilderQuestion() {
+                const wrap = document.getElementById('mb-questions');
+                if (!wrap || this.manualBuilderCount >= 60) return this.showToast('Maximum 60 questions allowed', 'error');
+                const n = wrap.querySelectorAll('[data-q]').length + 1;
+                this.manualBuilderCount = n;
+                const card = document.createElement('div');
+                card.className = 'p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3';
+                card.dataset.q = n;
+                card.innerHTML = `<div class="flex justify-between items-center"><b class="text-sky-400 text-sm">Question ${n}</b><button type="button" class="text-rose-400 text-xs" onclick="this.closest('[data-q]').remove(); window.app.updateManualBuilderCount()">Remove</button></div>
+                  <textarea data-field="question" rows="2" placeholder="Question text *" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm" required></textarea>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${[1,2,3,4].map((x)=>`<input data-field="o${x}" placeholder="Option ${x} *" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm" required>`).join('')}</div>
+                  <select data-field="answer" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm"><option value="0">Correct: Option 1</option><option value="1">Correct: Option 2</option><option value="2">Correct: Option 3</option><option value="3">Correct: Option 4</option></select>`;
+                card.insertAdjacentHTML('beforeend', `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3"><div class="space-y-2"><input type="url" data-field="imageUrl" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm" placeholder="Question image URL (optional)"><label class="cursor-pointer block text-center p-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-sky-400 font-bold hover:bg-slate-800"><i class="fa-solid fa-upload mr-1"></i> Upload Image<input type="file" accept="image/*" class="hidden" onchange="window.app.handleManualQuestionImageUpload(event, this)"></label></div><textarea data-field="explanation" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm font-devanagari resize-none" rows="2" placeholder="Explanation / LaTeX: \(x^2\) or $$E=mc^2$$"></textarea></div>`);
+                wrap.appendChild(card); this.updateManualBuilderCount(); this.typesetMath();
+            },
+            updateManualBuilderCount() {
+                const wrap=document.getElementById('mb-questions'); if(!wrap)return;
+                const cards=[...wrap.querySelectorAll('[data-q]')];
+                const el=document.getElementById('mb-count'); if(el)el.innerText=`${cards.length} / 60 Questions`;
+            },
+            async handleManualQuestionImageUpload(event, fileInput) {
+                const file = event.target.files?.[0]; if (!file) return;
+                if (!file.type.startsWith('image/')) return this.showToast('Please select an image file.', 'error');
+                if (file.size > 2 * 1024 * 1024) return this.showToast('Image should be under 2 MB.', 'error');
+                try {
+                    const dataUrl = await this.fileToBase64(file);
+                    const card = fileInput.closest('[data-q]');
+                    const input = card?.querySelector('[data-field="imageUrl"]');
+                    if (input) input.value = dataUrl;
+                    this.showToast('Question image added successfully.');
+                } catch (e) { console.error(e); this.showToast('Image upload failed.', 'error'); }
+            },
+            resetManualBuilder() {
+                const wrap=document.getElementById('mb-questions'); if(wrap)wrap.innerHTML='';
+                this.manualBuilderCount=0;
+                ['mb-title','mb-category','mb-duration'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=id==='mb-category'?'General Test':id==='mb-duration'?'30':'';});
+                this.updateManualBuilderCount(); this.addManualBuilderQuestion();
+            },
+            async publishManualBuilderTest() {
+                if(!window.state.isAdmin)return;
+                const title=document.getElementById('mb-title')?.value.trim();
+                const category=document.getElementById('mb-category')?.value.trim();
+                const duration=Number(document.getElementById('mb-duration')?.value);
+                const cards=[...document.querySelectorAll('#mb-questions [data-q]')];
+                if(!title || !category || !Number.isInteger(duration) || duration<1)return this.showToast('Title, category aur valid timer bharein', 'error');
+                if(cards.length<2 || cards.length>60)return this.showToast('Test mein 2 se 60 questions hone chahiye', 'error');
+                const questions=[];
+                for(const card of cards){
+                    const get=f=>card.querySelector(`[data-field="${f}"]`)?.value.trim();
+                    const q=get('question'), opts=[1,2,3,4].map(x=>get('o'+x));
+                    if(!q || opts.some(x=>!x))return this.showToast('Har question aur uske 4 options complete karein', 'error');
+                    questions.push({text_hi:q,text_en:'',options_hi:opts,options_en:[],correctIdx:Number(get('answer')),explanation:get('explanation') || '',imageUrl:get('imageUrl') || ''});
+                }
+                const test={id:'manual_'+Date.now(),title,category,duration,negativeMarking:0.25,questions};
+                window.state.db.tests.unshift(test);
+                await dbService.saveDocument('tests',test.id,test);
+                this.showToast('Manual test published successfully!');
+                window.state.adminTab='tests-mgr'; this.render();
+            },
+
+            openAddTestModal() {
+                const modalHtml = `
+                    <div id="modal-add-test" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 modal-enter-active">
+                        <div class="bg-slate-900 border border-slate-700 text-white rounded-3xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+                            <button onclick="document.getElementById('modal-add-test').remove()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+                            <h3 class="text-xl font-black font-devanagari mb-4 border-b border-slate-800 pb-2">नया मैनुअल टेस्ट जोड़ें</h3>
+                            <form onsubmit="window.app.saveNewManualTest(event)" class="space-y-4">
+                                <div><label class="block text-xs font-bold text-slate-400 mb-1">Test Title *</label><input type="text" id="new-test-title" required class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm outline-none"></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div><label class="block text-xs font-bold text-slate-400 mb-1">Category</label><input type="text" id="new-test-cat" value="MP Police / SSC" required class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm outline-none"></div>
+                                    <div><label class="block text-xs font-bold text-slate-400 mb-1">Duration (Min)</label><input type="number" id="new-test-dur" value="15" required class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm outline-none"></div>
+                                </div>
+                                <div class="border-t border-slate-800 pt-4">
+                                    <h4 class="text-sm font-bold text-sky-400 mb-2">Add Question 1 (Demo)</h4>
+                                    <input type="text" id="q1-hi" placeholder="Question in Hindi *" required class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm mb-3 outline-none font-devanagari">
+                                    <div class="grid grid-cols-2 gap-2 mb-3">
+                                        <input type="text" id="q1-o1" placeholder="Option 1" required class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs outline-none">
+                                        <input type="text" id="q1-o2" placeholder="Option 2" required class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs outline-none">
+                                        <input type="text" id="q1-o3" placeholder="Option 3" required class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs outline-none">
+                                        <input type="text" id="q1-o4" placeholder="Option 4" required class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs outline-none">
+                                    </div>
+                                    <select id="q1-ans" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs outline-none font-bold">
+                                        <option value="0">Option 1 is Correct</option><option value="1">Option 2 is Correct</option><option value="2">Option 3 is Correct</option><option value="3">Option 4 is Correct</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-black py-3 rounded-xl shadow-lg transition text-sm mt-2">Save & Publish Test</button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+            },
+            
+            async saveNewManualTest(e) {
+                e.preventDefault();
+                const newTest = { id: 'test_' + Date.now(), title: document.getElementById('new-test-title').value.trim(), category: document.getElementById('new-test-cat').value.trim(), duration: parseInt(document.getElementById('new-test-dur').value), negativeMarking: 0.25, questions: [{ text_hi: document.getElementById('q1-hi').value.trim(), text_en: '', options_hi: [document.getElementById('q1-o1').value.trim(), document.getElementById('q1-o2').value.trim(), document.getElementById('q1-o3').value.trim(), document.getElementById('q1-o4').value.trim()], options_en: [], correctIdx: parseInt(document.getElementById('q1-ans').value), explanation: 'Admin provided manual question.', imageUrl: '' }] };
+                window.state.db.tests.unshift(newTest); await dbService.saveDocument('tests', newTest.id, newTest); document.getElementById('modal-add-test').remove(); this.showToast('Test Published Live Successfully!'); this.render();
+            },
+
+            async saveSiteSettings() {
+                const groqKeyInput = document.getElementById('set-groq-key'); if (groqKeyInput) setAIKey('groq', groqKeyInput.value);
+                const geminiKeyInput = document.getElementById('set-gemini-key'); if (geminiKeyInput) setAIKey('gemini', geminiKeyInput.value);
+                const openAiKeyInput = document.getElementById('set-openai-key'); if (openAiKeyInput) setAIKey('openai', openAiKeyInput.value);
+                const aiProviderInput = document.getElementById('set-ai-provider'); if (aiProviderInput) { try { localStorage.setItem(AI_PROVIDER_KEY, aiProviderInput.value); } catch (_) {} }
+                const proxyInput = document.getElementById('set-ai-proxy'); if (proxyInput) { try { localStorage.setItem(AI_PROXY_URL_KEY, proxyInput.value.trim()); } catch (_) {} }
+                clearLegacyAIKeys();
+
+                const newContent = {
+                    heading: document.getElementById('set-heading').value, subheading: document.getElementById('set-subheading').value, posterUrl: document.getElementById('set-poster').value, tickerText: document.getElementById('set-ticker').value,
+                    stat1Val: document.getElementById('s1-val').value, stat1Lbl: document.getElementById('s1-lbl').value, stat2Val: document.getElementById('s2-val').value, stat2Lbl: document.getElementById('s2-lbl').value,
+                    stat3Val: document.getElementById('s3-val').value, stat3Lbl: document.getElementById('s3-lbl').value, stat4Val: document.getElementById('s4-val').value, stat4Lbl: document.getElementById('s4-lbl').value
+                };
+                
+                window.state.db.content = newContent; await dbService.saveDocument('settings', 'content', newContent);
+                this.updateGlobalUI(); this.showToast('Main Page & Tri-AI Engine Settings Saved!');
+            },
+
+            async saveFirebaseConfig() {
+                try {
+                    let val = document.getElementById('set-firebase-config').value.trim();
+                    if (!val) { localStorage.removeItem('glo_firebase_config'); this.showToast('Cloud DB disconnected. Reverting to offline mode.', 'info'); setTimeout(() => location.reload(), 1500); return; }
+                    val = val.replace(/([{,]\s*)([a-zA-Z0-9_]+?)\s*:/g, '$1"$2":').replace(/'/g, '"');
+                    const config = JSON.parse(val);
+                    if(config.apiKey && config.projectId) { localStorage.setItem('glo_firebase_config', JSON.stringify(config)); this.showToast('Real-Time Cloud DB Connected! Reloading engine...', 'info'); setTimeout(() => location.reload(), 1500); } else throw new Error();
+                } catch(e) { this.showToast('Invalid Firebase JSON Format! Please check it.', 'error'); }
+            },
+
+            async handleAdminImageUpload(event, targetInputId, previewId = null) {
+                const file = event.target.files[0]; if (!file) return;
+                try {
+                    const base64Str = await this.fileToBase64(file); const inputEl = document.getElementById(targetInputId);
+                    if(inputEl) { inputEl.value = base64Str; inputEl.dispatchEvent(new Event('input')); }
+                    const pId = previewId || targetInputId + '-preview'; const previewEl = document.getElementById(pId); if (previewEl) previewEl.src = base64Str;
+                    this.showToast('Image loaded locally');
+                } catch (e) { this.showToast('Failed to load image', 'error'); }
+            },
+
+            renderDraftEditor() {
+                const draft = window.state.db.drafts.find(d => d.id === window.state.editingDraftId);
+                if(!draft) return '';
+                const timerVal = draft.duration || draft.questions.length; const negMarkVal = draft.negativeMarking || 0.25;
+
+                return `
+                    <div class="bg-slate-900 rounded-3xl border border-slate-700 shadow-2xl overflow-hidden animate-[fadeIn_0.3s_ease-out] flex flex-col h-[85vh]">
+                        <div class="bg-slate-950 text-white px-6 py-5 flex justify-between items-center shrink-0 border-b border-slate-800">
+                            <div><h3 class="text-xl font-black tracking-tight">Configure & Publish Test</h3><p class="text-xs text-slate-400 mt-1">Review questions, set timer, negative marking, and setup.</p></div>
+                            <button onclick="window.app.cancelEditDraft()" class="bg-slate-800 hover:bg-rose-600 border border-slate-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition shadow">Cancel Setup</button>
+                        </div>
+                        
+                        <div class="p-6 bg-slate-900 border-b border-slate-800 shrink-0 shadow-sm z-10">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="col-span-1 md:col-span-3">
+                                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Test Title</label>
+                                    <input type="text" id="ed-title" value="${draft.title}" class="w-full bg-slate-950 border border-slate-700 focus:border-sky-500 rounded-xl px-4 py-3 text-sm text-white outline-none transition font-devanagari">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between"><span>Duration (Minutes)</span><span class="text-slate-500"><i class="fa-solid fa-clock"></i></span></label>
+                                    <input type="number" id="ed-timer" value="${timerVal}" min="1" class="w-full bg-slate-950 border border-slate-700 focus:border-sky-500 rounded-xl px-4 py-3 text-sm text-white outline-none transition font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-rose-400 uppercase mb-2 flex justify-between"><span>Negative Marking</span><span><i class="fa-solid fa-minus"></i></span></label>
+                                    <select id="ed-negative" class="w-full bg-rose-950/20 border border-rose-900/50 focus:border-rose-500 text-rose-300 rounded-xl px-4 py-3 text-sm outline-none transition font-bold">
+                                        <option value="0" ${negMarkVal == 0 ? 'selected' : ''}>0 (No Negative)</option>
+                                        <option value="0.25" ${negMarkVal == 0.25 ? 'selected' : ''}>-0.25 (1/4)</option>
+                                        <option value="0.33" ${negMarkVal == 0.33 ? 'selected' : ''}>-0.33 (1/3)</option>
+                                        <option value="0.5" ${negMarkVal == 0.5 ? 'selected' : ''}>-0.50 (1/2)</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-end"><div class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-center"><span class="block text-[10px] uppercase font-bold text-slate-500 mb-0.5">Total Questions</span><span class="text-2xl font-black text-sky-400">${draft.questions.length}</span></div></div>
+                            </div>
+                        </div>
+
+                        <div class="p-6 overflow-y-auto flex-grow bg-slate-900 space-y-6 custom-scrollbar" id="ed-q-list">
+                            ${draft.questions.map((q, i) => `
+                                <div class="bg-slate-950 p-5 sm:p-6 border border-slate-800 rounded-2xl shadow-sm relative group" data-index="${i}">
+                                    <div class="absolute -left-3 -top-3 w-8 h-8 bg-sky-600 text-white rounded-full flex items-center justify-center font-black text-sm shadow-md border-2 border-slate-950 z-10">Q${i+1}</div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                                        <div><label class="text-[10px] font-bold text-slate-500 uppercase mb-2 block">Hindi Text</label><textarea class="q-hi w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-200 font-devanagari resize-none outline-none focus:border-sky-500 h-24">${q.text_hi}</textarea></div>
+                                        <div><label class="text-[10px] font-bold text-slate-500 uppercase mb-2 block">English Text (Optional)</label><textarea class="q-en w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-200 resize-none outline-none focus:border-sky-500 h-24">${q.text_en || ''}</textarea></div>
+                                    </div>
+                                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 mb-5">
+                                        <label class="text-[10px] font-bold text-slate-500 uppercase mb-3 block">Options & Correct Answer</label>
+                                        <div class="space-y-3">
+                                            ${q.options_hi.map((opt, oIdx) => `
+                                                <div class="flex items-center gap-3">
+                                                    <input type="radio" name="correct_${i}" value="${oIdx}" ${q.correctIdx === oIdx ? 'checked' : ''} class="q-correct w-5 h-5 accent-emerald-500 cursor-pointer" title="Mark as correct">
+                                                    <input type="text" value="${opt}" class="q-opt-hi bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-sm text-slate-200 w-full font-devanagari outline-none focus:border-sky-500 ${q.correctIdx === oIdx ? 'border-emerald-500/50 bg-emerald-950/20' : ''}" placeholder="Hindi Option">
+                                                    <input type="text" value="${q.options_en?.[oIdx] || ''}" class="q-opt-en bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-sm text-slate-200 w-full outline-none focus:border-sky-500 hidden md:block" placeholder="English Option">
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="bg-indigo-950/20 p-4 rounded-xl border border-indigo-900/40">
+                                            <label class="text-[10px] font-black text-indigo-400 uppercase mb-2 flex items-center gap-1.5"><i class="fa-solid fa-image"></i> Reference Image</label>
+                                            <div class="flex flex-col gap-2">
+                                                <input type="text" class="q-img w-full bg-slate-950 border border-indigo-900/50 rounded-lg px-3 py-2 text-xs text-indigo-200 outline-none focus:border-indigo-500" id="q-img-${i}" value="${q.imageUrl || ''}" placeholder="Paste Image URL or Upload">
+                                                <div class="flex justify-between items-center"><label class="cursor-pointer bg-slate-900 hover:bg-slate-800 border border-indigo-900/50 text-indigo-400 px-3 py-2 rounded-lg text-xs font-bold transition inline-block text-center w-full"><i class="fa-solid fa-upload"></i> Upload Local Image<input type="file" accept="image/*" class="hidden" onchange="window.app.handleAdminImageUpload(event, 'q-img-${i}')"></label></div>
+                                            </div>
+                                        </div>
+                                        <div class="bg-amber-950/20 p-4 rounded-xl border border-amber-900/40">
+                                            <label class="text-[10px] font-black text-amber-400 uppercase mb-2 flex items-center gap-1.5"><i class="fa-solid fa-lightbulb"></i> Detailed Explanation</label>
+                                            <textarea class="q-exp w-full bg-slate-950 border border-amber-900/50 rounded-lg px-3 py-2 text-sm text-amber-100 font-devanagari resize-none outline-none focus:border-amber-500 h-20" placeholder="Type solution/explanation here...">${q.explanation || ''}</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="bg-slate-950 p-5 border-t border-slate-800 shrink-0">
+                            <button onclick="window.app.publishDraft()" class="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-slate-950 font-black py-4 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.2)] text-base uppercase tracking-wider transition transform hover:-translate-y-1"><i class="fa-solid fa-cloud-arrow-up mr-2 text-xl"></i> Publish Test Live Now</button>
+                        </div>
+                    </div>
+                `;
+            },
+
+            editDraft(id) { window.state.editingDraftId = id; this.render(); },
+            cancelEditDraft() { window.state.editingDraftId = null; this.render(); },
+            
+            async deleteDraft(id) { window.state.db.drafts = window.state.db.drafts.filter(d => d.id !== id); await dbService.deleteDocument('drafts', id); this.showToast('Draft deleted successfully', 'error'); this.render(); },
+            async deleteLiveTest(id) { window.state.db.tests = window.state.db.tests.filter(d => d.id !== id); await dbService.deleteDocument('tests', id); this.showToast('Test unpublished successfully', 'error'); this.render(); },
+            
+            async publishDraft() {
+                const draftIdx = window.state.db.drafts.findIndex(d => d.id === window.state.editingDraftId);
+                if(draftIdx === -1) return; const draft = window.state.db.drafts[draftIdx];
+                const newTitle = document.getElementById('ed-title').value.trim();
+                if(!newTitle) return this.showToast('Test Title is required!', 'error');
+                
+                draft.title = newTitle; draft.duration = parseInt(document.getElementById('ed-timer').value) || draft.questions.length; draft.negativeMarking = parseFloat(document.getElementById('ed-negative').value);
+                
+                const qBlocks = document.querySelectorAll('#ed-q-list > div[data-index]');
+                qBlocks.forEach((block, index) => {
+                    const q = draft.questions[index];
+                    q.text_hi = block.querySelector('.q-hi').value.trim(); q.text_en = block.querySelector('.q-en').value.trim();
+                    const optsHi = block.querySelectorAll('.q-opt-hi'), optsEn = block.querySelectorAll('.q-opt-en');
+                    q.options_hi = Array.from(optsHi).map(inp => inp.value.trim()); q.options_en = Array.from(optsEn).map(inp => inp.value.trim());
+                    const correctRadio = block.querySelector(`input[name="correct_${index}"]:checked`);
+                    if(correctRadio) q.correctIdx = parseInt(correctRadio.value);
+                    q.imageUrl = block.querySelector('.q-img').value.trim(); q.explanation = block.querySelector('.q-exp').value.trim();
+                });
+
+                window.state.db.tests.unshift(draft); await dbService.saveDocument('tests', draft.id, draft);
+                window.state.db.drafts.splice(draftIdx, 1); await dbService.deleteDocument('drafts', draft.id);
+                window.state.editingDraftId = null; this.showToast('Test Published Live Successfully!'); this.setAdminTab('tests-mgr');
+            },
+
+            async testAIConnection() {
+                const out=document.getElementById('ai-health-result');
+                if(out) out.textContent='Checking AI connection…';
+                const provider=getAIProvider(), proxyUrl=getAIProxyUrl();
+                try {
+                    if(proxyUrl){
+                        const r=await fetch(proxyUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider,task:'health_check',prompt:'Reply with exactly OK'})});
+                        if(!r.ok) throw new Error('Proxy HTTP '+r.status);
+                    } else {
+                        const key=getAIKey(provider); if(!key) throw new Error('API key is not configured');
+                        if(provider==='groq'){
+                            const r=await fetch('https://api.groq.com/openai/v1/models',{headers:{Authorization:`Bearer ${key}`}});
+                            if(!r.ok) throw new Error('Groq HTTP '+r.status);
+                        } else if(provider==='gemini'){
+                            const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`);
+                            if(!r.ok) throw new Error('Gemini HTTP '+r.status);
+                        } else {
+                            const r=await fetch('https://api.openai.com/v1/models',{headers:{Authorization:`Bearer ${key}`}});
+                            if(!r.ok) throw new Error('OpenAI HTTP '+r.status);
+                        }
+                    }
+                    if(out) out.innerHTML='<span class="text-emerald-400 font-bold">✓ AI connection is working ('+provider+').</span>';
+                    this.showToast('AI connection successful');
+                } catch(e){
+                    if(out) out.innerHTML='<span class="text-rose-400 font-bold">✕ '+String(e.message).replace(/[<>]/g,'')+'</span>';
+                    this.showToast('AI connection failed. Check Settings.','error');
+                }
+            },
+
+            async generateAITest(mode) {
+                let prompt, title, count, btnId;
+
+                if (mode === 'text') {
+                    title = document.getElementById('ai-test-title').value.trim();
+                    count = parseInt(document.getElementById('ai-q-count').value, 10);
+                    const sourceText = document.getElementById('ai-source-text').value.trim();
+                    if (!title || !sourceText) return this.showToast('Fill title and source text!', 'error');
+                    if (!Number.isInteger(count) || count < 2 || count > 200) return this.showToast('Enter a valid question count (2-200).', 'error');
+                    btnId = 'btn-ai-text';
+                    prompt = `Create exactly ${count} multiple-choice questions based strictly on the following text.
+Text:
+"""${sourceText}"""`;
+                } else {
+                    title = document.getElementById('ai-topic-name').value.trim();
+                    count = parseInt(document.getElementById('ai-topic-count').value, 10);
+                    if (!title) return this.showToast('Enter a topic name!', 'error');
+                    if (!Number.isInteger(count) || count < 2 || count > 200) return this.showToast('Enter a valid question count (2-200).', 'error');
+                    btnId = 'btn-ai-topic';
+                    prompt = `Create exactly ${count} high-quality, exam-level multiple-choice questions on the topic: "${title}".`;
+                }
+
+                prompt += `
+                You are an expert question setter for Indian competitive exams.
+                Return ONLY valid JSON representing an object with a "questions" array.
+                Do not use markdown fences and do not add commentary.
+                Every question must contain exactly these fields:
+                {
+                  "text_hi": "Hindi question",
+                  "text_en": "English question",
+                  "options_hi": ["Option A", "Option B", "Option C", "Option D"],
+                  "options_en": ["Option A", "Option B", "Option C", "Option D"],
+                  "correctIdx": 0,
+                  "imageUrl": "",
+                  "explanation": "Detailed explanation in Hindi"
+                }
+                Rules:
+                - "questions" must contain exactly ${count} items.
+                - options_hi and options_en must each contain exactly 4 strings.
+                - correctIdx must be an integer from 0 to 3.
+                - Keep questions factually accurate and non-ambiguous.
+                - For text mode, use only information supported by the supplied source text.
+                - Do not invent image URLs. Use an empty imageUrl unless an image URL is explicitly available in the source.`;
+
+                const btn = document.getElementById(btnId);
+                const originalBtnText = btn ? btn.innerHTML : '';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Generating Test...';
+                }
+
+                const cleanJsonText = (value) => {
+                    let s = String(value || '').trim();
+                    s = s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+                    return s;
+                };
+
+                const extractQuestions = (value) => {
+                    let parsed = value;
+                    if (typeof parsed === 'string') {
+                        const cleaned = cleanJsonText(parsed);
+                        try {
+                            parsed = JSON.parse(cleaned);
+                        } catch (_) {
+                            const objectMatch = cleaned.match(/\{[\s\S]*\}/);
+                            const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+                            if (objectMatch) parsed = JSON.parse(objectMatch[0]);
+                            else if (arrayMatch) parsed = JSON.parse(arrayMatch[0]);
+                            else throw new Error('AI returned unreadable JSON.');
+                        }
+                    }
+                    if (Array.isArray(parsed)) return parsed;
+                    if (parsed && Array.isArray(parsed.questions)) return parsed.questions;
+                    if (parsed && parsed.output && Array.isArray(parsed.output.questions)) return parsed.output.questions;
+                    throw new Error('AI response did not contain a questions array.');
+                };
+
+                const normalizeQuestions = (items) => {
+                    if (!Array.isArray(items) || !items.length) throw new Error('AI returned no questions.');
+                    if (items.length !== count) throw new Error(`AI returned ${items.length} questions instead of ${count}.`);
+
+                    return items.map((q, i) => {
+                        const optionsHi = Array.isArray(q.options_hi) ? q.options_hi.map(v => String(v ?? '').trim()) : [];
+                        const optionsEn = Array.isArray(q.options_en) ? q.options_en.map(v => String(v ?? '').trim()) : [];
+                        const correctIdx = Number(q.correctIdx);
+
+                        if (!String(q.text_hi ?? '').trim()) throw new Error(`Question ${i + 1} has no Hindi text.`);
+                        if (optionsHi.length !== 4 || optionsHi.some(v => !v)) throw new Error(`Question ${i + 1} must have 4 Hindi options.`);
+                        if (optionsEn.length !== 4) throw new Error(`Question ${i + 1} must have 4 English options.`);
+                        if (!Number.isInteger(correctIdx) || correctIdx < 0 || correctIdx > 3) throw new Error(`Question ${i + 1} has an invalid correct answer.`);
+
+                        return {
+                            text_hi: String(q.text_hi ?? '').trim(),
+                            text_en: String(q.text_en ?? '').trim(),
+                            options_hi: optionsHi,
+                            options_en: optionsEn,
+                            correctIdx,
+                            imageUrl: String(q.imageUrl ?? '').trim(),
+                            explanation: String(q.explanation ?? '').trim()
+                        };
+                    });
+                };
+
+                try {
+                    const provider = getAIProvider();
+                    let generatedQs = [];
+                    const proxyUrl = getAIProxyUrl();
+
+                    if (proxyUrl) {
+                        const proxyRes = await fetch(proxyUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ provider, task: 'generate_test', prompt })
+                        });
+                        if (!proxyRes.ok) throw new Error(`AI Proxy Error: ${proxyRes.status}`);
+                        const proxyData = await proxyRes.json();
+                        generatedQs = extractQuestions(
+                            proxyData.questions || proxyData.data || proxyData.result ||
+                            proxyData.reply || proxyData.text || proxyData.content || proxyData
+                        );
+
+                    } else if (provider === 'openai') {
+                        /*
+                         * OpenAI Responses API integration.
+                         * The API key is read only from the existing session-only AI settings.
+                         * It is intentionally NOT embedded in this HTML file or localStorage.
+                         */
+                        const openAiKey = getAIKey('openai');
+                        if (!openAiKey || !/^sk-/i.test(openAiKey)) throw new Error("Missing OpenAI Key");
+
+                        const res = await fetch('https://api.openai.com/v1/responses', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${openAiKey}`
+                            },
+                            body: JSON.stringify({
+                                model: 'gpt-5.6-luna',
+                                input: [
+                                    {
+                                        role: 'system',
+                                        content: 'You are a strict JSON test generator. Return only valid JSON. Never add markdown or commentary.'
+                                    },
+                                    {
+                                        role: 'user',
+                                        content: prompt
+                                    }
+                                ],
+                                temperature: 0.2,
+                                max_output_tokens: 16000
+                            })
+                        });
+
+                        if (!res.ok) {
+                            let detail = '';
+                            try {
+                                const errData = await res.json();
+                                detail = errData?.error?.message ? `: ${errData.error.message}` : '';
+                            } catch (_) {}
+                            throw new Error(`OpenAI Connection Failed: ${res.status}${detail}`);
+                        }
+
+                        const data = await res.json();
+                        const rawText = data?.output_text ||
+                            data?.output?.flatMap(item => item?.content || [])
+                                ?.filter(part => part?.type === 'output_text' && typeof part?.text === 'string')
+                                ?.map(part => part.text)
+                                ?.join('') || '';
+
+                        if (!rawText) throw new Error('OpenAI returned an empty response.');
+                        generatedQs = extractQuestions(rawText);
+
+                    } else if (provider === 'groq') {
+                        const groqKey = getAIKey('groq');
+                        if (!groqKey || !/^gsk_/i.test(groqKey)) throw new Error("Missing Groq Key");
+
+                        // Robust Groq path: current model + small batches + retries + detailed errors.
+                        const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
+                        const BATCH_SIZE = 20;
+                        const batches = [];
+                        for (let start = 0; start < count; start += BATCH_SIZE) batches.push(Math.min(BATCH_SIZE, count - start));
+
+                        for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+                            const batchCount = batches[batchIndex];
+                            const batchPrompt = prompt.replaceAll(`exactly ${count}`, `exactly ${batchCount}`) +
+                                `\n\nIMPORTANT: This is batch ${batchIndex + 1} of ${batches.length}. Return exactly ${batchCount} questions in this response.`;
+                            let lastError = null;
+
+                            for (let attempt = 1; attempt <= 3; attempt++) {
+                                try {
+                                    const controller = new AbortController();
+                                    const timeoutId = setTimeout(() => controller.abort(), 90000);
+                                    const res = await fetch(GROQ_ENDPOINT, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+                                        signal: controller.signal,
+                                        body: JSON.stringify({
+                                            model: GROQ_MODEL,
+                                            messages: [
+                                                { role: 'system', content: 'Return ONLY valid JSON with a questions array. No markdown. Follow the requested count exactly.' },
+                                                { role: 'user', content: batchPrompt }
+                                            ],
+                                            response_format: { type: 'json_object' },
+                                            temperature: 0.15,
+                                            max_completion_tokens: 30000,
+                                            stream: false
+                                        })
+                                    });
+                                    clearTimeout(timeoutId);
+                                    if (!res.ok) {
+                                        let detail = '';
+                                        try { const errData = await res.json(); detail = errData?.error?.message || errData?.error?.code || ''; } catch (_) {}
+                                        throw new Error(`Groq HTTP ${res.status}${detail ? `: ${detail}` : ''}`);
+                                    }
+                                    const data = await res.json();
+                                    const rawText = data?.choices?.[0]?.message?.content || '';
+                                    if (!rawText) throw new Error('Groq returned an empty response.');
+                                    const batchQuestions = extractQuestions(rawText);
+                                    if (!Array.isArray(batchQuestions) || batchQuestions.length !== batchCount) {
+                                        throw new Error(`Groq returned ${Array.isArray(batchQuestions) ? batchQuestions.length : 0} questions; expected ${batchCount}.`);
+                                    }
+                                    generatedQs.push(...batchQuestions);
+                                    lastError = null;
+                                    break;
+                                } catch (err) {
+                                    lastError = err;
+                                    console.warn(`Groq batch ${batchIndex + 1} attempt ${attempt} failed:`, err);
+                                    if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                                }
+                            }
+                            if (lastError) throw lastError;
+                        }
+                    } else {
+                        const geminiKey = getAIKey('gemini');
+                        if (!geminiKey || geminiKey.length < 10) throw new Error("Missing Gemini Key");
+
+                        const payload = {
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: { responseMimeType: "application/json", temperature: 0.2 }
+                        };
+                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(geminiKey)}`;
+                        const response = await fetch(apiUrl, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (!response.ok) throw new Error(`Gemini Connection Failed: ${response.status}`);
+                        const data = await response.json();
+                        const rawText = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+                        if (!rawText) throw new Error("Invalid AI format or empty response");
+                        generatedQs = extractQuestions(rawText);
+                    }
+
+                    generatedQs = normalizeQuestions(generatedQs);
+
+                    const newObj = {
+                        id: 'ai_gen_' + Date.now(),
+                        title: title,
+                        category: mode === 'topic' ? 'AI Auto-Generated' : 'Extracted Material',
+                        duration: generatedQs.length * 1.5,
+                        negativeMarking: 0.25,
+                        questions: generatedQs
+                    };
+
+                    if (mode === 'text') {
+                        window.state.db.drafts.unshift(newObj);
+                        await dbService.saveDocument('drafts', newObj.id, newObj);
+                        this.showToast(`Draft Saved! ${generatedQs.length} Qs moved to Review Bank.`);
+                        this.setAdminTab('review');
+                    } else {
+                        window.state.db.tests.unshift(newObj);
+                        await dbService.saveDocument('tests', newObj.id, newObj);
+                        this.showToast(`Test Published Live! ${generatedQs.length} Qs created.`);
+                        this.setAdminTab('tests-mgr');
+                    }
+
+                } catch (e) {
+                    console.error("AI Gen Error:", e);
+                    let errorMsg = 'AI Generation Failed. Please check AI Settings and try again.';
+
+                    if (e.message.includes("OpenAI Key")) errorMsg = 'OpenAI Key missing/invalid. Add the key in Admin → Settings.';
+                    else if (e.message.includes("Gemini Key")) errorMsg = 'Gemini Key missing/invalid. Add the key in Admin → Settings.';
+                    else if (e.message.includes("Groq Key")) errorMsg = 'Groq Key missing/invalid. Add the key in Admin → Settings.';
+                    else if (e.message.includes("Groq HTTP")) errorMsg = `Groq API error: ${e.message}. Admin → Settings में key और AI connection test check करें।`;
+                    else if (e.message.includes("401") || e.message.includes("403")) errorMsg = 'AI authorization failed. Check the selected API key.';
+                    else if (e.message.includes("429")) errorMsg = 'AI rate limit reached. Please wait a moment and try again.';
+                    else if (e.message.includes("JSON") || e.message.includes("questions array")) errorMsg = 'AI returned an invalid test format. Please try generating again.';
+                    else if (e.message.includes("instead of")) errorMsg = `AI returned an incorrect number of questions. Requested: ${count}.`;
+
+                    this.showToast(errorMsg, 'error');
+
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = originalBtnText;
+                    }
+                }
+            },
+
+            setAdminTab(tab) { window.state.adminTab = tab; window.state.editingDraftId = null; window.state.adminViewingStudent = null; this.render(); }
+        };
+    </script>
+</body>
+</html>
