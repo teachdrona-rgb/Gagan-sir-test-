@@ -256,10 +256,10 @@
             </div>
             <form onsubmit="window.app.handleAdminLogin(event)" class="space-y-4">
                 <div>
-                    <input type="text" id="admin-user" required autocomplete="off" placeholder="Username" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:ring-2 focus:ring-amber-500 text-sm transition">
+                    <input type="text" id="admin-user" required autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Username" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:ring-2 focus:ring-amber-500 text-sm transition">
                 </div>
                 <div>
-                    <input type="password" id="admin-pass" required autocomplete="new-password" placeholder="Password" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:ring-2 focus:ring-amber-500 text-sm transition">
+                    <input type="password" id="admin-pass" required autocomplete="current-password" placeholder="Password" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:ring-2 focus:ring-amber-500 text-sm transition">
                 </div>
                 <div id="admin-error-msg" class="hidden text-red-400 text-xs font-bold text-center bg-red-950/60 p-3 rounded-xl border border-red-800/50">Invalid Admin Credentials!</div>
                 <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3.5 rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.3)] transition transform hover:-translate-y-0.5 mt-2">Unlock Console</button>
@@ -334,17 +334,14 @@
         };
         const AI_PROVIDER_KEY = 'glo_ai_provider';
         // Current production Groq model; the old Llama 3.3 model was deprecated.
-        const GROQ_MODEL = 'llama-3.3-70b-versatile';
+        const GROQ_MODEL = 'openai/gpt-oss-20b';
         const AI_PROXY_URL_KEY = 'glo_ai_proxy_url';
         const AI_SESSION_KEYS = { openai: 'glo_openai_key_session', gemini: 'glo_gemini_key_session', groq: 'glo_groq_key_session' };
         // Convenience default for this single-file build. WARNING: any key embedded in HTML is visible to everyone who receives the file.
         // For public/production deployment, remove this default and use the HTTPS server-side proxy setting instead.
-        const DEFAULT_GROQ_API_KEY = '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';
-        const getAIProvider = () => { try { return localStorage.getItem(AI_PROVIDER_KEY) || 'groq'; } catch (_) { return 'groq'; } };
-        const getAIProxyUrl = () => {
-            let url = ''; try { url = localStorage.getItem(AI_PROXY_URL_KEY) || ''; } catch (_) {}
-            return /^https?:\/\//i.test(url) ? url : '';
-        };
+        const DEFAULT_GROQ_API_KEY = ''; // Set a rotated key in Admin → Settings, or use a server-side proxy.
+        const getAIProvider = () => { try { const p = localStorage.getItem(AI_PROVIDER_KEY); return ['groq','gemini','openai'].includes(p) ? p : 'groq'; } catch (_) { return 'groq'; } };
+        const getAIProxyUrl = () => { try { return (localStorage.getItem(AI_PROXY_URL_KEY) || '').trim(); } catch (_) { return ''; } };
         const getAIKey = provider => {
             const sessionKey = safeSessionGet(AI_SESSION_KEYS[provider] || '', '');
             // Use a manually entered session key when present; otherwise use the supplied Groq key.
@@ -487,12 +484,43 @@
                 await dbService.loadAllData();
                 this.checkStoredSessions(); this.updateGlobalUI(); this.render();
 
-                document.addEventListener("visibilitychange", () => {
-                    if (document.hidden && window.state.currentView === 'cbt-exam' && window.state.cbtState) {
-                        window.state.cbtState.warnings = (window.state.cbtState.warnings || 0) + 1;
-                        if (window.state.cbtState.warnings >= 2) {
-                            this.showToast('Exam auto-submitted due to window switching!', 'error'); this.forceSubmitCBT();
-                        } else this.showMessageBox('Warning! Window Switch Detected', 'You have switched tabs or minimized the browser! Switching window one more time will AUTO-SUBMIT your test immediately.', 'warning');
+                // Anti-cheating: each time the exam page becomes hidden (tab/app/site switch), warn.
+                // The third detected switch automatically submits the test.
+                document.addEventListener('visibilitychange', () => {
+                    const cbt = window.state?.cbtState;
+                    if (document.hidden && window.state?.currentView === 'cbt-exam' && cbt && !cbt.submitting) {
+                        cbt.warnings = (cbt.warnings || 0) + 1;
+                        const remaining = Math.max(0, 3 - cbt.warnings);
+                        if (cbt.warnings >= 3) {
+                            this.showToast('3 warnings reached. Test auto-submitted.', 'error');
+                            this.forceSubmitCBT('tab-switch-limit');
+                        } else {
+                            this.showMessageBox(
+                                `Warning ${cbt.warnings}/3: Tab or site switch detected`,
+                                `Please stay on the test page. ${remaining} more warning${remaining === 1 ? '' : 's'} will automatically submit your test.`,
+                                'warning'
+                            );
+                        }
+                    }
+                });
+                // If the student navigates away in the same tab or closes the page, attempt a final submit.
+                // Local cache is written synchronously before any network write so the result is not lost on unload.
+                window.addEventListener('pagehide', () => {
+                    if (window.state?.currentView === 'cbt-exam' && window.state?.cbtState && !window.state.cbtState.submitting) {
+                        this.forceSubmitCBT('page-left');
+                    }
+                });
+                window.addEventListener('beforeunload', event => {
+                    const cbt = window.state?.cbtState;
+                    if (window.state?.currentView !== 'cbt-exam' || !cbt || cbt.submitting) return;
+                    // Same-tab navigation attempts also count as a warning. Cancel the first two;
+                    // after the third, permit leaving and pagehide will persist/submit the attempt.
+                    cbt.warnings = (cbt.warnings || 0) + 1;
+                    if (cbt.warnings < 3) {
+                        event.preventDefault();
+                        event.returnValue = '';
+                    } else {
+                        this.forceSubmitCBT('navigation-warning-limit');
                     }
                 });
             },
@@ -575,7 +603,7 @@
             logoutStudent() { localStorage.removeItem(DB_KEY_STUDENT); window.state.student = null; this.updateStudentUI(); this.navigateTo('home'); },
 
             handleAdminNavClick() { if (window.state.isAdmin) this.navigateTo('admin-dashboard'); else this.openModal('modal-admin-login'); },
-            handleAdminLogin(e) { e.preventDefault(); if (document.getElementById('admin-user').value === 'gaganlodhi' && document.getElementById('admin-pass').value === '161002') { window.state.isAdmin = true; localStorage.setItem(DB_KEY_ADMIN, 'true'); this.closeModal('modal-admin-login'); this.showToast('Admin Console Unlocked'); this.navigateTo('admin-dashboard'); } else document.getElementById('admin-error-msg').classList.remove('hidden'); },
+            handleAdminLogin(e) { e.preventDefault(); const user = (document.getElementById('admin-user')?.value || '').trim().toLowerCase(); const pass = (document.getElementById('admin-pass')?.value || '').trim(); const error = document.getElementById('admin-error-msg'); if (user === 'gaganlodhi' && pass === '161002') { window.state.isAdmin = true; try { localStorage.setItem(DB_KEY_ADMIN, 'true'); } catch (_) {} if (error) error.classList.add('hidden'); const form = document.querySelector('#modal-admin-login form'); form?.reset(); this.closeModal('modal-admin-login'); this.showToast('Admin Console Unlocked'); this.navigateTo('admin-dashboard'); } else { if (error) { error.textContent = 'गलत Username या Password. कृपया gaganlodhi और 161002 दर्ज करें।'; error.classList.remove('hidden'); } document.getElementById('admin-pass')?.select(); } },
             logoutAdmin() { window.state.isAdmin = false; localStorage.removeItem(DB_KEY_ADMIN); this.navigateTo('home'); },
 
             render() {
@@ -797,7 +825,7 @@
                             if (!res.ok) throw new Error(`${provider} Error: ${res.status}`);
                             const data = await res.json(); aiReply = data?.choices?.[0]?.message?.content?.trim() || '';
                         } else {
-                            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(key)}`;
+                            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(key)}`;
                             const res = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:`You are an expert tutor for MP Police, SSC and Railway competitive exams in India. Answer clearly and concisely in Hindi.\nQuestion: ${query}`}]}]})});
                             if (!res.ok) throw new Error(`Gemini Error: ${res.status}`);
                             const data = await res.json(); aiReply = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
@@ -831,48 +859,56 @@
             },
 
             renderTestSeriesView() {
-                const { tests } = window.state.db;
+                const tests = (window.state.db.tests || []).filter(t => t && Array.isArray(t.questions) && t.questions.length);
+                const esc = v => String(v ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+                const examOf = t => String(t.exam || t.targetExam || t.category || 'अन्य परीक्षा').trim();
+                const subjectOf = t => String(t.subject || 'अन्य विषय').trim();
+                const sectionOf = t => String(t.section || t.sectionName || t.sectionTitle || 'सामान्य सेक्शन').trim();
+                const unique = vals => [...new Set(vals)].sort((a,b)=>a.localeCompare(b,'hi'));
+                const exams = unique(tests.map(examOf)), subjects = unique(tests.map(subjectOf)), sections = unique(tests.map(sectionOf));
                 return `
-                    <div class="max-w-7xl mx-auto px-4 py-8 w-full space-y-8 pb-24">
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                            <div><h1 class="text-3xl font-black text-white font-devanagari">लाइव मॉक टेस्ट सीरीज</h1><p class="text-slate-400 text-xs font-devanagari mt-1">TCS पैटर्न CBT परीक्षा इंजन (Negative Marking Supported)</p></div>
+                    <div class="max-w-7xl mx-auto px-4 py-8 w-full space-y-7 pb-24">
+                        <div class="space-y-2"><h1 class="text-3xl font-black text-white font-devanagari">अपनी परीक्षा के अनुसार टेस्ट चुनें</h1><p class="text-slate-400 text-sm font-devanagari">Exam → Subject → Section के हिसाब से टेस्ट खोजें। हर टेस्ट शुरू करने से पहले उसका विषय और प्रश्न संख्या देखें।</p></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                            <label class="text-xs font-bold text-slate-300">परीक्षा (Exam)<select id="student-test-exam" onchange="window.app.filterStudentTests()" class="mt-2 w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white"><option value="">सभी परीक्षाएँ</option>${exams.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('')}</select></label>
+                            <label class="text-xs font-bold text-slate-300">विषय (Subject)<select id="student-test-subject" onchange="window.app.filterStudentTests()" class="mt-2 w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white"><option value="">सभी विषय</option>${subjects.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('')}</select></label>
+                            <label class="text-xs font-bold text-slate-300">सेक्शन (Section)<select id="student-test-section" onchange="window.app.filterStudentTests()" class="mt-2 w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white"><option value="">सभी सेक्शन</option>${sections.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('')}</select></label>
                         </div>
+                        <div id="student-test-count" class="text-xs text-slate-400">${tests.length} टेस्ट उपलब्ध</div>
+                        <div id="student-test-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                            ${tests.map(test => {
+                                const exam=examOf(test), subject=subjectOf(test), section=sectionOf(test);
+                                return `<article data-test-card data-exam="${esc(exam)}" data-subject="${esc(subject)}" data-section="${esc(section)}" class="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between hover:border-sky-500/50 transition shadow-xl">
+                                    <div class="space-y-3"><div class="flex flex-wrap gap-2"><span class="px-3 py-1 bg-sky-500/15 text-sky-300 rounded-full text-[11px] font-bold">${esc(exam)}</span><span class="px-3 py-1 bg-purple-500/15 text-purple-300 rounded-full text-[11px] font-bold">${esc(subject)}</span></div>
+                                    <p class="text-[11px] text-emerald-300 font-bold">Section: ${esc(section)}</p><h3 class="text-lg font-bold text-white font-devanagari leading-snug">${esc(test.title || 'Practice Test')}</h3>
+                                    <div class="flex flex-wrap gap-3 text-xs text-slate-400"><span><i class="fa-solid fa-clock"></i> ${Number(test.duration)||Math.max(1,test.questions.length)} Min</span><span><i class="fa-solid fa-list-ol"></i> ${test.questions.length} प्रश्न</span><span><i class="fa-solid fa-star"></i> ${test.questions.length} अंक</span></div></div>
+                                    <button onclick="window.app.startTest('${esc(test.id)}')" class="w-full mt-5 bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-xl text-sm transition"><i class="fa-solid fa-play mr-2"></i> टेस्ट शुरू करें</button>
+                                </article>`;
+                            }).join('')}
+                            ${tests.length===0 ? '<div class="col-span-full p-12 text-center text-slate-400 bg-slate-900 rounded-3xl border border-dashed border-slate-700">अभी कोई टेस्ट उपलब्ध नहीं है। जल्द ही नए टेस्ट जोड़े जाएँगे।</div>' : ''}
+                        </div>
+                    </div>`;
+            },
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            ${tests.map(test => `
-                                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between hover:border-sky-500/50 transition shadow-xl relative overflow-hidden">
-                                    ${test.category.includes('AI') ? '<div class="absolute -right-6 -top-6 w-20 h-20 bg-purple-500/10 rounded-full blur-xl pointer-events-none"></div>' : ''}
-                                    <div class="space-y-4 relative z-10">
-                                        <div class="flex justify-between items-start">
-                                            <span class="px-3 py-1 bg-sky-500/20 text-sky-400 rounded-full text-[11px] font-bold border border-sky-500/30">${test.category}</span>
-                                            <span class="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/30">Negative: -${test.negativeMarking}</span>
-                                        </div>
-                                        <h3 class="text-lg font-bold text-white font-devanagari leading-snug">${test.title}</h3>
-                                        <div class="flex gap-4 text-xs text-slate-400 font-medium">
-                                            <span><i class="fa-solid fa-clock text-slate-500"></i> ${test.duration} Min</span>
-                                            <span><i class="fa-solid fa-list-ol text-slate-500"></i> ${test.questions.length} Qs</span>
-                                            <span><i class="fa-solid fa-star text-slate-500"></i> ${test.questions.length} Marks</span>
-                                        </div>
-                                    </div>
-                                    <div class="pt-5 mt-5 border-t border-slate-800 relative z-10">
-                                        <button onclick="window.app.startTest('${test.id}')" class="w-full bg-slate-800 hover:bg-sky-600 text-white font-bold py-3 rounded-xl text-xs transition border border-slate-700 hover:border-sky-500 shadow-lg font-devanagari">
-                                            <i class="fa-solid fa-play mr-1.5"></i> टेस्ट शुरू करें (Start Test)
-                                        </button>
-                                    </div>
-                                </div>
-                            `).join('')}
-                            ${tests.length === 0 ? '<div class="col-span-full p-12 text-center text-slate-500 bg-slate-900 rounded-3xl border border-dashed border-slate-700">कोई टेस्ट उपलब्ध नहीं है।</div>' : ''}
-                        </div>
-                    </div>
-                `;
+            filterStudentTests() {
+                const exam=document.getElementById('student-test-exam')?.value||'', subject=document.getElementById('student-test-subject')?.value||'', section=document.getElementById('student-test-section')?.value||'';
+                let shown=0; document.querySelectorAll('#student-test-grid [data-test-card]').forEach(card=>{ const match=(!exam||card.dataset.exam===exam)&&(!subject||card.dataset.subject===subject)&&(!section||card.dataset.section===section); card.classList.toggle('hidden',!match); if(match)shown++; });
+                const count=document.getElementById('student-test-count'); if(count)count.textContent=`${shown} टेस्ट उपलब्ध`;
             },
 
             startTest(testId) {
                 if (!window.state.student) { this.showToast('टेस्ट शुरू करने के लिए लॉगिन करें!', 'error'); this.openModal('modal-student-auth'); return; }
-                const test = window.state.db.tests.find(t => t.id === testId); if (!test) return;
-
+                const test = window.state.db.tests.find(t => t.id === testId);
+                if (!test) { this.showToast('Test नहीं मिला। कृपया पेज refresh करें।', 'error'); return; }
+                if (!Array.isArray(test.questions) || test.questions.length === 0) {
+                    this.showToast('इस टेस्ट में प्रश्न उपलब्ध नहीं हैं। Admin से संपर्क करें।', 'error'); return;
+                }
+                const durationMinutes = Number(test.duration);
                 window.state.cbtState = {
-                    ...test, durationSec: test.duration * 60, currentIndex: 0, warnings: 0, mobilePaletteOpen: false, negativeMarking: test.negativeMarking || 0.25,
+                    ...test,
+                    durationSec: Number.isFinite(durationMinutes) && durationMinutes > 0 ? Math.round(durationMinutes * 60) : Math.max(60, test.questions.length * 60),
+                    currentIndex: 0, warnings: 0, submitting: false, mobilePaletteOpen: false,
+                    negativeMarking: Number.isFinite(Number(test.negativeMarking)) ? Number(test.negativeMarking) : 0.25,
                     questions: test.questions.map(q => ({ ...q, selectedAnswer: null, status: 'not-visited', isMarkedForReview: false }))
                 };
                 window.state.cbtState.questions[0].status = 'not-answered'; this.navigateTo('cbt-exam');
@@ -1037,8 +1073,11 @@
                 document.body.insertAdjacentHTML('beforeend', modalHtml);
             },
 
-            async forceSubmitCBT() {
-                clearInterval(window.cbtTimerInterval); const cbt = window.state.cbtState; if (!cbt) return;
+            async forceSubmitCBT(reason = 'manual') {
+                clearInterval(window.cbtTimerInterval);
+                const cbt = window.state.cbtState;
+                if (!cbt || cbt.submitting) return;
+                cbt.submitting = true; // Prevent double-clicks, timer and focus events creating duplicate submissions.
                 let score = 0, correct = 0, incorrect = 0, unattempted = 0;
 
                 const detailedResults = cbt.questions.map((q, idx) => {
@@ -1053,8 +1092,15 @@
                 const subId = 'sub_' + Date.now(), totalMarks = cbt.questions.length, percentage = Math.max(0, Math.round((score / totalMarks) * 100));
                 const sub = { id: subId, testId: cbt.id, studentName: window.state.student.name, mobile: window.state.student.mobile, testTitle: cbt.title, score: score.toFixed(2), totalMarks: totalMarks, correct, incorrect, unattempted, negativeMarking: cbt.negativeMarking, date: new Date().toLocaleString(), percentage: percentage, details: detailedResults };
 
-                window.state.db.submissions.push(sub); await dbService.saveDocument('submissions', sub.id, sub);
-                window.state.lastSub = sub; window.state.cbtState = null; confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } }); this.navigateTo('result');
+                sub.submitReason = reason;
+                window.state.db.submissions.push(sub);
+                // Persist locally before waiting for Firestore; this also protects pagehide submissions.
+                dbService.syncToLocalCache();
+                const saveResult = await dbService.saveDocument('submissions', sub.id, sub);
+                if (!saveResult?.ok) console.warn('Submission saved locally; cloud sync may need retry.');
+                window.state.lastSub = sub; window.state.cbtState = null;
+                if (typeof confetti === 'function') { try { confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } }); } catch (_) {} }
+                this.navigateTo('result');
             },
 
             renderResultView() {
@@ -1225,6 +1271,7 @@
 
                         <div class="flex gap-2 border-b border-slate-800 pb-3 overflow-x-auto no-scrollbar shrink-0">
                             <button onclick="window.app.setAdminTab('students')" class="shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs transition ${window.state.adminTab === 'students' ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}"><i class="fa-solid fa-users mr-1.5"></i> Students & Reports</button>
+                            <button onclick="window.app.setAdminTab('bulk-image-test')" class="shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs transition ${window.state.adminTab === 'bulk-image-test' ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}"><i class="fa-solid fa-images mr-1.5"></i> Bulk Image → Test</button>
                             <button onclick="window.app.setAdminTab('manual-builder')" class="shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs transition ${window.state.adminTab === 'manual-builder' ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}"><i class="fa-solid fa-keyboard mr-1.5"></i> Manual Test Builder</button>
                             <button onclick="window.app.setAdminTab('ai-gen')" class="shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs transition ${window.state.adminTab === 'ai-gen' ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}"><i class="fa-solid fa-robot mr-1.5"></i> AI Test Gen</button>
                             <button onclick="window.app.setAdminTab('pyq-session')" class="shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs transition ${window.state.adminTab === 'pyq-session' ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}"><i class="fa-solid fa-calendar-days mr-1.5"></i> PYQ Session Mock</button>
@@ -1267,7 +1314,7 @@
                             <div class="space-y-4 mb-8 bg-purple-950/20 border border-purple-900/30 p-5 rounded-2xl relative overflow-hidden">
                                 <h4 class="font-bold text-purple-400 text-sm border-b border-purple-900/30 pb-2 flex items-center gap-2"><i class="fa-solid fa-microchip"></i> Local App AI Setup (Tri-AI Engine)</h4>
                                 <p class="text-xs text-purple-200 font-devanagari leading-relaxed">
-                                    You can now seamlessly switch between Google Gemini, OpenAI, and Groq AI for instant test generation and doubt solving.
+                                    Choose Groq, Gemini or OpenAI. The selected provider is used by the AI tools; a server-side proxy is recommended for production.
                                 </p>
                                 
                                 <div class="mb-4">
@@ -1452,16 +1499,19 @@
                     if (window.state.editingDraftId) return this.renderDraftEditor();
                     return `
                         <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl animate-[fadeIn_0.3s_ease-out]">
-                            <h3 class="text-xl font-black text-white mb-6">Review Bank (Drafts)</h3>
+                            <h3 class="text-xl font-black text-white mb-2">Review Bank (Drafts)</h3>
+                            <p class="text-sm text-slate-400 mb-4">हर Text-to-Draft / PYQ से बने प्रश्न पहले यहाँ आएँगे। अलग-अलग drafts चुनकर एक subject/exam-wise test में जोड़ सकते हैं।</p>
+                            <div class="flex flex-wrap gap-3 mb-5"><button onclick="window.app.combineSelectedDrafts()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-3 rounded-xl font-bold text-sm"><i class="fa-solid fa-layer-group mr-2"></i>Selected Drafts जोड़कर एक Test बनाएं</button><span class="text-xs text-slate-500 self-center">पहले drafts select करें, फिर combine करें।</span></div>
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                                 ${drafts.map(d => `
                                     <div class="flex flex-col justify-between p-5 bg-slate-950 border border-slate-800 rounded-2xl hover:border-sky-500/50 transition shadow-md group">
                                         <div class="mb-5">
                                             <div class="flex justify-between items-start mb-3">
-                                                <span class="bg-slate-800 text-slate-400 text-[10px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wider">Draft</span>
+                                                <label class="bg-slate-800 text-slate-300 text-[10px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wider flex items-center gap-2"><input type="checkbox" class="draft-select accent-emerald-500" value="${escapeAdminText(d.id)}"> Select Draft</label>
                                                 <span class="text-[10px] font-bold text-sky-400 bg-sky-950/60 border border-sky-800/50 px-2 py-0.5 rounded">${Array.isArray(d.questions) ? d.questions.length : 0} Qs</span>
                                             </div>
                                             <h4 class="font-bold text-slate-200 leading-snug">${escapeAdminText(d.title || 'Untitled draft')}</h4>
+                                            <p class="text-xs text-cyan-300 mt-2">Exam: ${escapeAdminText(d.exam || 'Not set')} · Subject: ${escapeAdminText(d.subject || 'Not set')}</p>
                                         </div>
                                         <div class="flex gap-2 pt-4 border-t border-slate-800">
                                             <button onclick="window.app.deleteDraft('${d.id}')" class="text-rose-400 hover:text-white hover:bg-rose-600 bg-slate-900 px-3 py-2 rounded-xl border border-slate-700 hover:border-rose-600 font-bold text-xs transition flex items-center justify-center w-12" title="Delete Draft"><i class="fa-solid fa-trash-can"></i></button>
@@ -1473,6 +1523,57 @@
                             </div>
                         </div>
                     `;
+                }
+
+                if (window.state.adminTab === 'bulk-image-test') {
+                    return `
+                      <section class="bg-slate-900 p-5 sm:p-7 rounded-3xl border border-slate-800 shadow-xl space-y-5">
+                        <div>
+                          <h3 class="text-xl font-black text-sky-400"><i class="fa-solid fa-images mr-2"></i>Bulk Image-to-Test Generator</h3>
+                          <p class="text-xs text-slate-400 mt-1">एक साथ 100 तक प्रश्नों की images upload करें, AI से extract कराएँ और publish करने से पहले हर प्रश्न verify करें।</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <input id="bulk-test-title" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-sm" placeholder="Test title *">
+                          <input id="bulk-test-category" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-sm" value="General Test" placeholder="Exam / Category *">
+                          <label class="text-xs text-slate-400">Duration (minutes)<input id="bulk-test-duration" type="number" min="1" value="30" class="block w-full mt-1 p-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm"></label>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <input id="bulk-test-exam" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-sm" placeholder="Exam name (e.g. MP Police)">
+                          <input id="bulk-test-subject" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-sm" placeholder="Subject (e.g. Reasoning)">
+                          <input id="bulk-test-section" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-sm" placeholder="Section / Chapter">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <label class="text-xs text-slate-400">OCR backend URL
+                            <input id="bulk-ocr-url" type="url" value="/api/bulk-image-to-test" class="mt-1 w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white" placeholder="https://your-domain/api/bulk-image-to-test">
+                          </label>
+                          <label class="text-xs text-slate-400">Admin API token (session only)
+                            <input id="bulk-ocr-token" type="password" class="mt-1 w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white" placeholder="BULK_OCR_ADMIN_TOKEN">
+                          </label>
+                        </div>
+                        <div id="bulk-dropzone" class="rounded-2xl border-2 border-dashed border-sky-700/70 bg-slate-950/70 p-6 sm:p-10 text-center cursor-pointer hover:border-sky-400 transition" onclick="document.getElementById('bulk-image-input').click()" ondragover="event.preventDefault();this.classList.add('border-sky-400')" ondragleave="this.classList.remove('border-sky-400')" ondrop="window.app.handleBulkImageDrop(event)">
+                          <i class="fa-solid fa-cloud-arrow-up text-3xl text-sky-400"></i>
+                          <p class="font-bold text-white mt-2">Images यहाँ drag & drop करें या चुनें</p>
+                          <p class="text-xs text-slate-500 mt-1">JPG, PNG, WEBP • अधिकतम 100 images • प्रति image 10 MB</p>
+                          <input id="bulk-image-input" type="file" accept="image/jpeg,image/png,image/webp" multiple class="hidden" onchange="window.app.handleBulkImageSelection(event.target.files)">
+                        </div>
+                        <div class="flex flex-wrap gap-3 items-center justify-between">
+                          <div id="bulk-upload-summary" class="text-xs text-slate-400">कोई image select नहीं की गई।</div>
+                          <div class="flex gap-2">
+                            <button onclick="window.app.clearBulkImages()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold">Clear</button>
+                            <button id="bulk-process-btn" onclick="window.app.processBulkImages()" class="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-black"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Extract Questions</button>
+                          </div>
+                        </div>
+                        <div id="bulk-image-list" class="space-y-2"></div>
+                        <div id="bulk-review-panel" class="hidden space-y-4 border-t border-slate-800 pt-5">
+                          <div class="flex flex-wrap justify-between gap-2 items-center">
+                            <div><h4 class="text-lg font-black text-emerald-400">Review & Edit Questions</h4><p id="bulk-review-count" class="text-xs text-slate-400"></p></div>
+                            <button onclick="window.app.exportBulkQuestionsJSON()" class="px-3 py-2 rounded-xl bg-slate-800 text-xs font-bold border border-slate-700"><i class="fa-solid fa-download mr-1"></i> Export JSON</button>
+                          </div>
+                          <div id="bulk-question-review" class="space-y-4"></div>
+                          <button id="bulk-save-test-btn" onclick="window.app.saveBulkImageTest()" class="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm"><i class="fa-solid fa-floppy-disk mr-2"></i>Save & Generate Test</button>
+                        </div>
+                        <p class="text-[11px] text-amber-300/80">ध्यान दें: AI द्वारा निकाला गया correct answer हमेशा शिक्षक verify करें। Duplicate प्रश्न publish नहीं होंगे।</p>
+                      </section>`;
                 }
 
                 if (window.state.adminTab === 'manual-builder') {
@@ -1501,7 +1602,7 @@
                                 ${tests.map(t => `
                                     <div class="flex flex-col sm:flex-row justify-between items-center p-5 bg-slate-950 border border-slate-800 rounded-2xl hover:border-slate-700 transition gap-4">
                                         <div class="w-full sm:w-auto">
-                                            <div class="flex items-center gap-2 mb-1"><span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-bold uppercase tracking-wider">${t.category}</span></div>
+                                            <div class="flex items-center gap-2 mb-1"><span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-bold uppercase tracking-wider">${t.category || 'General'}</span></div>
                                             <h4 class="font-bold text-white text-base">${t.title}</h4>
                                             <div class="flex gap-4 mt-2 text-xs text-slate-400 font-medium">
                                                 <span class="flex items-center gap-1"><i class="fa-solid fa-stopwatch text-slate-500"></i> ${t.duration} Min</span>
@@ -1510,6 +1611,7 @@
                                             </div>
                                         </div>
                                         <div class="flex gap-2 w-full sm:w-auto shrink-0">
+                                            <button onclick="window.app.categorizeLiveTest('${t.id}')" class="w-full sm:w-auto text-sky-300 hover:text-white font-bold text-xs bg-slate-900 hover:bg-sky-700 px-4 py-2.5 rounded-xl border border-slate-700 transition shadow-sm flex items-center justify-center gap-2"><i class="fa-solid fa-tags"></i> Set Subject</button>
                                             <button onclick="window.app.deleteLiveTest('${t.id}')" class="w-full sm:w-auto text-rose-400 hover:text-white font-bold text-xs bg-slate-900 hover:bg-rose-600 px-4 py-2.5 rounded-xl border border-slate-700 hover:border-rose-600 transition shadow-sm flex items-center justify-center gap-2"><i class="fa-solid fa-trash"></i> Unpublish</button>
                                         </div>
                                     </div>
@@ -1675,6 +1777,158 @@
             
             async deleteNote(id) { window.state.db.notes = window.state.db.notes.filter(n => n.id !== id); await dbService.deleteDocument('notes', id); this.showToast('Note deleted', 'error'); this.render(); },
 
+            bulkImageFiles: [],
+            bulkImageQuestions: [],
+            bulkImageProgress: [],
+            escapeBulkHtml(value) {
+                return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+            },
+            handleBulkImageDrop(event) {
+                event.preventDefault();
+                document.getElementById('bulk-dropzone')?.classList.remove('border-sky-400');
+                this.handleBulkImageSelection(event.dataTransfer?.files || []);
+            },
+            handleBulkImageSelection(fileList) {
+                const incoming = Array.from(fileList || []);
+                const valid = incoming.filter(f => /^image\/(jpeg|png|webp)$/.test(f.type) && f.size <= 10 * 1024 * 1024);
+                const rejected = incoming.length - valid.length;
+                const remaining = Math.max(0, 100 - this.bulkImageFiles.length);
+                this.bulkImageFiles.push(...valid.slice(0, remaining));
+                this.bulkImageProgress = this.bulkImageFiles.map((f, i) => ({name:f.name, status:'queued', progress:0, error:''}));
+                if (rejected || valid.length > remaining) this.showToast(`${rejected + Math.max(0,valid.length-remaining)} files rejected (type/size/100-file limit).`, 'error');
+                this.renderBulkImageFileList();
+                const input = document.getElementById('bulk-image-input'); if (input) input.value = '';
+            },
+            renderBulkImageFileList() {
+                const list = document.getElementById('bulk-image-list');
+                const summary = document.getElementById('bulk-upload-summary');
+                if (!list || !summary) return;
+                summary.textContent = `${this.bulkImageFiles.length} / 100 images selected`;
+                list.innerHTML = this.bulkImageFiles.map((f,i) => {
+                    const p = this.bulkImageProgress[i] || {};
+                    const pct = Math.max(0, Math.min(100, Number(p.progress)||0));
+                    return `<div class="p-3 bg-slate-950 border border-slate-800 rounded-xl">
+                      <div class="flex justify-between gap-3 text-xs"><span class="truncate text-slate-200">${this.escapeBulkHtml(f.name)}</span><span class="${p.status==='error'?'text-rose-400':p.status==='done'?'text-emerald-400':'text-sky-400'}">${this.escapeBulkHtml(p.status||'queued')} ${pct}%</span></div>
+                      <div class="h-1.5 bg-slate-800 rounded-full mt-2 overflow-hidden"><div class="h-full bg-sky-500 transition-all" style="width:${pct}%"></div></div>
+                      ${p.error?`<p class="text-[11px] text-rose-400 mt-1">${this.escapeBulkHtml(p.error)}</p>`:''}
+                    </div>`;
+                }).join('');
+            },
+            clearBulkImages() {
+                this.bulkImageFiles = []; this.bulkImageProgress = []; this.bulkImageQuestions = [];
+                const input=document.getElementById('bulk-image-input'); if(input)input.value='';
+                const review=document.getElementById('bulk-review-panel'); if(review)review.classList.add('hidden');
+                this.renderBulkImageFileList();
+            },
+            async processBulkImages() {
+                if (!window.state.isAdmin) return;
+                if (!this.bulkImageFiles.length) return this.showToast('पहले images चुनें।','error');
+                const endpoint = document.getElementById('bulk-ocr-url')?.value.trim();
+                const token = document.getElementById('bulk-ocr-token')?.value.trim();
+                if (!endpoint) return this.showToast('OCR backend URL भरें।','error');
+                const btn=document.getElementById('bulk-process-btn'); if(btn){btn.disabled=true;btn.textContent='Processing…';}
+                this.bulkImageQuestions=[];
+                this.bulkImageProgress=this.bulkImageFiles.map(f=>({name:f.name,status:'queued',progress:0,error:''}));
+                this.renderBulkImageFileList();
+                const perImageResults=new Array(this.bulkImageFiles.length);
+                let next=0;
+                const worker=async()=>{
+                    while(true){
+                        const idx=next++; if(idx>=this.bulkImageFiles.length)return;
+                        const file=this.bulkImageFiles[idx], progress=this.bulkImageProgress[idx];
+                        progress.status='processing';progress.progress=15;this.renderBulkImageFileList();
+                        try{
+                            const fd=new FormData();fd.append('images',file,file.name);
+                            const response=await fetch(endpoint,{method:'POST',headers:token?{'Authorization':`Bearer ${token}`}:{},body:fd});
+                            const payload=await response.json().catch(()=>({}));
+                            if(!response.ok)throw new Error(payload.error||`OCR backend failed (${response.status})`);
+                            const result=payload.results?.[0];
+                            if(!result)throw new Error('Backend did not return an image result.');
+                            if(result.error)throw new Error(result.error);
+                            const qs=Array.isArray(result.questions)?result.questions:[];
+                            if(!qs.length)throw new Error('No valid question found in this image.');
+                            const valid=[];
+                            qs.forEach(q=>{
+                                const opts=Array.isArray(q.options)?q.options:[];
+                                const answer=String(q.correct_answer||'').trim().toUpperCase();
+                                const answerIndex=/^[A-D]$/.test(answer)?answer.charCodeAt(0)-65:Number.isInteger(q.correctIdx)?q.correctIdx:-1;
+                                if(!q.question||opts.length!==4||opts.some(x=>typeof x!=='string'||!x.trim())||(answer&&(answerIndex<0||answerIndex>3))){
+                                    throw new Error('Invalid OCR structure: question, four options and optional A-D answer are required.');
+                                }
+                                valid.push({question:String(q.question),options:opts.map(String),correct_answer:answerIndex>=0?'ABCD'[answerIndex]:'',explanation:String(q.explanation||''),source_image:file.name});
+                            });
+                            perImageResults[idx]=valid;progress.status='done';progress.progress=100;
+                        }catch(e){perImageResults[idx]=[];progress.status='error';progress.progress=100;progress.error=e.message||'OCR failed.';}
+                        this.renderBulkImageFileList();
+                    }
+                };
+                try{
+                    await Promise.all(Array.from({length:Math.min(3,this.bulkImageFiles.length)},worker));
+                    this.bulkImageQuestions=perImageResults.flat();
+                    this.renderBulkImageFileList();this.renderBulkQuestionReview();
+                    const failed=this.bulkImageProgress.filter(x=>x.status==='error').length;
+                    this.showToast(`${this.bulkImageQuestions.length} questions extracted; ${failed} image(s) need attention.`,failed?'warning':'success');
+                }catch(e){
+                    console.error('Bulk OCR failed',e);this.showToast(e.message||'Bulk OCR failed. Check backend and try again.','error');
+                }finally{if(btn){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Extract Questions';}}
+            },
+            renderBulkQuestionReview() {
+                const panel=document.getElementById('bulk-review-panel'), wrap=document.getElementById('bulk-question-review'), count=document.getElementById('bulk-review-count');
+                if(!panel||!wrap)return;
+                panel.classList.toggle('hidden',!this.bulkImageQuestions.length);
+                if(count)count.textContent=`${this.bulkImageQuestions.length} extracted • edit every field and verify the answer`;
+                wrap.innerHTML=this.bulkImageQuestions.map((q,i)=>`<article data-bulk-q="${i}" class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                  <div class="flex justify-between items-center gap-2"><b class="text-sky-400 text-sm">Question ${i+1}</b><span class="text-[10px] text-slate-500 truncate">${this.escapeBulkHtml(q.source_image)}</span><button onclick="window.app.removeBulkQuestion(${i})" class="text-rose-400 text-xs">Remove</button></div>
+                  <textarea data-bulk-field="question" rows="3" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm">${this.escapeBulkHtml(q.question)}</textarea>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${q.options.map((o,j)=>`<label class="text-[11px] text-slate-400">Option ${'ABCD'[j]}<input data-bulk-option="${j}" value="${this.escapeBulkHtml(o)}" class="block w-full mt-1 p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white"></label>`).join('')}</div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2"><label class="text-xs text-slate-400">Correct answer<select data-bulk-field="correct_answer" class="block w-full mt-1 p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white"><option value="" ${!q.correct_answer?'selected':''}>Select correct answer</option>${['A','B','C','D'].map(a=>`<option value="${a}" ${q.correct_answer===a?'selected':''}>Option ${a}</option>`).join('')}</select></label>
+                  <label class="text-xs text-slate-400">Explanation<textarea data-bulk-field="explanation" rows="2" class="block w-full mt-1 p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">${this.escapeBulkHtml(q.explanation)}</textarea></label></div>
+                </article>`).join('');
+            },
+            syncBulkQuestionEdits() {
+                document.querySelectorAll('#bulk-question-review [data-bulk-q]').forEach(card=>{
+                    const i=Number(card.dataset.bulkQ), q=this.bulkImageQuestions[i]; if(!q)return;
+                    q.question=card.querySelector('[data-bulk-field="question"]')?.value.trim()||'';
+                    q.options=[0,1,2,3].map(j=>card.querySelector(`[data-bulk-option="${j}"]`)?.value.trim()||'');
+                    q.correct_answer=card.querySelector('[data-bulk-field="correct_answer"]')?.value||'';
+                    q.explanation=card.querySelector('[data-bulk-field="explanation"]')?.value.trim()||'';
+                });
+            },
+            removeBulkQuestion(index) {
+                this.syncBulkQuestionEdits(); this.bulkImageQuestions.splice(index,1); this.renderBulkQuestionReview();
+            },
+            exportBulkQuestionsJSON() {
+                this.syncBulkQuestionEdits();
+                const blob=new Blob([JSON.stringify(this.bulkImageQuestions,null,2)],{type:'application/json'});
+                const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download='bulk-image-questions.json';a.click();URL.revokeObjectURL(url);
+            },
+            async saveBulkImageTest() {
+                if(!window.state.isAdmin)return;
+                this.syncBulkQuestionEdits();
+                const title=document.getElementById('bulk-test-title')?.value.trim(), category=document.getElementById('bulk-test-category')?.value.trim(), duration=Number(document.getElementById('bulk-test-duration')?.value);
+                if(!title||!category||!Number.isInteger(duration)||duration<1)return this.showToast('Test title, category and valid duration required.','error');
+                if(this.bulkImageQuestions.length<2)return this.showToast('कम-से-कम 2 valid questions चाहिए।','error');
+                const seen=new Map(), questions=[];
+                for(let i=0;i<this.bulkImageQuestions.length;i++){
+                    const q=this.bulkImageQuestions[i], stem=String(q.question||'').toLocaleLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+                    if(!stem||q.options.length!==4||q.options.some(x=>!x)||!['A','B','C','D'].includes(q.correct_answer))return this.showToast(`Question ${i+1} incomplete है।`,'error');
+                    if(seen.has(stem))return this.showToast(`Duplicate question detected: Q${seen.get(stem)+1} और Q${i+1}. Duplicate हटाएँ।`,'error');
+                    seen.set(stem,i);
+                    const idx='ABCD'.indexOf(q.correct_answer);
+                    questions.push({text_hi:q.question,text_en:'',options_hi:q.options,options_en:[],correctIdx:idx,explanation:q.explanation||'',imageUrl:''});
+                }
+                const test={id:'bulk_image_'+Date.now(),title,category,exam:document.getElementById('bulk-test-exam')?.value.trim()||category,subject:document.getElementById('bulk-test-subject')?.value.trim()||'Other',section:document.getElementById('bulk-test-section')?.value.trim()||'General',duration,negativeMarking:0.25,questions,source:'bulk-image-to-test',createdAt:new Date().toISOString()};
+                const saveBtn=document.getElementById('bulk-save-test-btn');if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Saving…';}
+                try {
+                    window.state.db.tests.unshift(test); dbService.syncToLocalCache();
+                    const result=await dbService.saveDocument('tests',test.id,test);
+                    if(!result.ok || !result.cloud) { window.state.db.tests=window.state.db.tests.filter(t=>t.id!==test.id); dbService.syncToLocalCache(); throw new Error('Firestore is not connected or the cloud write failed. Test was not published; check Firebase config and security rules.'); }
+                    this.showToast(`Test published successfully: ${questions.length} questions.`);
+                    window.state.adminTab='tests-mgr';this.render();
+                } catch(e) { console.error(e);this.showToast(e.message||'Test save failed.','error'); }
+                finally { if(saveBtn){saveBtn.disabled=false;saveBtn.innerHTML='<i class="fa-solid fa-floppy-disk mr-2"></i>Save & Generate Test';} }
+            },
+
             manualBuilderCount: 0,
             addManualBuilderQuestion() {
                 const wrap = document.getElementById('mb-questions');
@@ -1711,7 +1965,7 @@
             resetManualBuilder() {
                 const wrap=document.getElementById('mb-questions'); if(wrap)wrap.innerHTML='';
                 this.manualBuilderCount=0;
-                ['mb-title','mb-category','mb-duration'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=id==='mb-category'?'General Test':id==='mb-duration'?'30':'';});
+                ['mb-title','mb-exam','mb-subject','mb-section'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';}); ['mb-category','mb-duration'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=id==='mb-category'?'General Test':'30';});
                 this.updateManualBuilderCount(); this.addManualBuilderQuestion();
             },
             async publishManualBuilderTest() {
@@ -1729,7 +1983,7 @@
                     if(!q || opts.some(x=>!x))return this.showToast('Har question aur uske 4 options complete karein', 'error');
                     questions.push({text_hi:q,text_en:'',options_hi:opts,options_en:[],correctIdx:Number(get('answer')),explanation:get('explanation') || '',imageUrl:get('imageUrl') || ''});
                 }
-                const test={id:'manual_'+Date.now(),title,category,duration,negativeMarking:0.25,questions};
+                const test={id:'manual_'+Date.now(),title,category,exam:document.getElementById('mb-exam')?.value.trim()||category,subject:document.getElementById('mb-subject')?.value.trim()||'Other',section:document.getElementById('mb-section')?.value.trim()||'General',duration,negativeMarking:0.25,questions};
                 window.state.db.tests.unshift(test);
                 await dbService.saveDocument('tests',test.id,test);
                 this.showToast('Manual test published successfully!');
@@ -1748,6 +2002,7 @@
                                     <div><label class="block text-xs font-bold text-slate-400 mb-1">Category</label><input type="text" id="new-test-cat" value="MP Police / SSC" required class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm outline-none"></div>
                                     <div><label class="block text-xs font-bold text-slate-400 mb-1">Duration (Min)</label><input type="number" id="new-test-dur" value="15" required class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm outline-none"></div>
                                 </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2"><input id="new-test-exam" placeholder="Exam name" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs"><input id="new-test-subject" placeholder="Subject" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs"><input id="new-test-section" placeholder="Section / Chapter" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs"></div>
                                 <div class="border-t border-slate-800 pt-4">
                                     <h4 class="text-sm font-bold text-sky-400 mb-2">Add Question 1 (Demo)</h4>
                                     <input type="text" id="q1-hi" placeholder="Question in Hindi *" required class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm mb-3 outline-none font-devanagari">
@@ -1771,7 +2026,7 @@
             
             async saveNewManualTest(e) {
                 e.preventDefault();
-                const newTest = { id: 'test_' + Date.now(), title: document.getElementById('new-test-title').value.trim(), category: document.getElementById('new-test-cat').value.trim(), duration: parseInt(document.getElementById('new-test-dur').value), negativeMarking: 0.25, questions: [{ text_hi: document.getElementById('q1-hi').value.trim(), text_en: '', options_hi: [document.getElementById('q1-o1').value.trim(), document.getElementById('q1-o2').value.trim(), document.getElementById('q1-o3').value.trim(), document.getElementById('q1-o4').value.trim()], options_en: [], correctIdx: parseInt(document.getElementById('q1-ans').value), explanation: 'Admin provided manual question.', imageUrl: '' }] };
+                const newTest = { id: 'test_' + Date.now(), title: document.getElementById('new-test-title').value.trim(), category: document.getElementById('new-test-cat').value.trim(), exam:document.getElementById('new-test-exam')?.value.trim()||document.getElementById('new-test-cat').value.trim(), subject:document.getElementById('new-test-subject')?.value.trim()||'Other', section:document.getElementById('new-test-section')?.value.trim()||'General', duration: parseInt(document.getElementById('new-test-dur').value), negativeMarking: 0.25, questions: [{ text_hi: document.getElementById('q1-hi').value.trim(), text_en: '', options_hi: [document.getElementById('q1-o1').value.trim(), document.getElementById('q1-o2').value.trim(), document.getElementById('q1-o3').value.trim(), document.getElementById('q1-o4').value.trim()], options_en: [], correctIdx: parseInt(document.getElementById('q1-ans').value), explanation: 'Admin provided manual question.', imageUrl: '' }] };
                 window.state.db.tests.unshift(newTest); await dbService.saveDocument('tests', newTest.id, newTest); document.getElementById('modal-add-test').remove(); this.showToast('Test Published Live Successfully!'); this.render();
             },
 
@@ -1832,6 +2087,9 @@
                                     <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Test Title</label>
                                     <input type="text" id="ed-title" value="${esc(draft.title)}" class="w-full bg-slate-950 border border-slate-700 focus:border-sky-500 rounded-xl px-4 py-3 text-sm text-white outline-none transition font-devanagari">
                                 </div>
+                                <div><label class="block text-xs font-bold text-slate-400 uppercase mb-2">Exam / परीक्षा</label><input type="text" id="ed-exam" value="${esc(draft.exam || '')}" placeholder="MP Police, SSC GD, Railway..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white"></div>
+                                <div><label class="block text-xs font-bold text-slate-400 uppercase mb-2">Subject / विषय</label><input type="text" id="ed-subject" value="${esc(draft.subject || '')}" placeholder="Reasoning, Maths, GK..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white"></div>
+                                <div><label class="block text-xs font-bold text-slate-400 uppercase mb-2">Section / Chapter</label><input type="text" id="ed-section" value="${esc(draft.section || '')}" placeholder="General Awareness, Algebra..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white"></div>
                                 <div>
                                     <label class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between"><span>Duration (Minutes)</span><span class="text-slate-500"><i class="fa-solid fa-clock"></i></span></label>
                                     <input type="number" id="ed-timer" value="${timerVal}" min="1" class="w-full bg-slate-950 border border-slate-700 focus:border-sky-500 rounded-xl px-4 py-3 text-sm text-white outline-none transition font-mono">
@@ -1895,7 +2153,38 @@
             editDraft(id) { window.state.editingDraftId = id; this.render(); },
             cancelEditDraft() { window.state.editingDraftId = null; this.render(); },
             
+            async combineSelectedDrafts() {
+                const ids = Array.from(document.querySelectorAll('.draft-select:checked')).map(el => el.value);
+                if (ids.length < 1) return this.showToast('पहले कम से कम एक draft select करें।', 'error');
+                const chosen = window.state.db.drafts.filter(d => ids.includes(String(d.id)));
+                const questions = chosen.flatMap(d => (Array.isArray(d.questions) ? d.questions : []).map(q => ({...q})));
+                if (!questions.length) return this.showToast('Selected drafts में questions नहीं मिले।', 'error');
+                const title = prompt('Combined test का नाम लिखें:', chosen.length === 1 ? (chosen[0].title || 'Combined Test') : chosen.map(d=>d.title).slice(0,3).join(' + '));
+                if (title === null || !title.trim()) return;
+                const exam = prompt('Exam name लिखें (जैसे MP Police / SSC GD):', chosen.find(d=>d.exam)?.exam || '');
+                if (exam === null) return;
+                const subject = prompt('Subject name लिखें (जैसे Reasoning / Maths / GK):', chosen.find(d=>d.subject)?.subject || 'Mixed Subject');
+                if (subject === null) return;
+                const combined = {id:'combined_'+Date.now(), title:title.trim(), exam:exam.trim(), subject:subject.trim(), category:[exam.trim(),subject.trim()].filter(Boolean).join(' / '), duration:Math.max(1, Math.ceil(questions.length*1.5)), negativeMarking:0.25, questions, sourceDraftIds:ids, createdAt:new Date().toISOString()};
+                window.state.db.drafts.unshift(combined);
+                dbService.syncToLocalCache();
+                const saved = await dbService.saveDocument('drafts', combined.id, combined);
+                this.showToast(`Combined review draft बन गया: ${questions.length} questions. अब Review & Setup से जाँचकर publish करें।`, saved?.cloud ? 'success' : 'info');
+                this.render();
+            },
+
             async deleteDraft(id) { window.state.db.drafts = window.state.db.drafts.filter(d => d.id !== id); await dbService.deleteDocument('drafts', id); this.showToast('Draft deleted successfully', 'error'); this.render(); },
+            async categorizeLiveTest(testId) {
+                const test=window.state.db.tests.find(t=>t.id===testId); if(!test)return this.showToast('Test not found.','error');
+                const exam=prompt('Exam name (e.g. MP Police / SSC GD):',test.exam||test.category||''); if(exam===null)return;
+                const subject=prompt('Subject (e.g. Maths / Reasoning / GK):',test.subject||''); if(subject===null)return;
+                const section=prompt('Section / Chapter:',test.section||'General'); if(section===null)return;
+                test.exam=exam.trim()||test.category||'Other'; test.subject=subject.trim()||'Other'; test.section=section.trim()||'General';
+                dbService.syncToLocalCache(); const saved=await dbService.saveDocument('tests',test.id,test);
+                if(saved?.ok===false||!saved?.cloud)this.showToast('Metadata local device पर update हुआ; cloud sync जाँचें.','error'); else this.showToast('Exam / Subject / Section saved.');
+                this.render();
+            },
+
             async deleteLiveTest(id) { window.state.db.tests = window.state.db.tests.filter(d => d.id !== id); await dbService.deleteDocument('tests', id); this.showToast('Test unpublished successfully', 'error'); this.render(); },
             
             async publishDraft() {
@@ -1906,7 +2195,7 @@
                 const newTitle = titleInput?.value.trim() || '';
                 if(!newTitle) return this.showToast('Test Title is required!', 'error');
                 
-                draft.title = newTitle; draft.duration = parseInt(document.getElementById('ed-timer').value) || draft.questions.length; draft.negativeMarking = parseFloat(document.getElementById('ed-negative').value);
+                draft.title = newTitle; draft.exam = (document.getElementById('ed-exam')?.value || '').trim(); draft.subject = (document.getElementById('ed-subject')?.value || '').trim(); draft.section = (document.getElementById('ed-section')?.value || '').trim() || 'General'; draft.category = [draft.exam, draft.subject].filter(Boolean).join(' / ') || draft.category || 'General Test'; draft.duration = Math.max(1, parseInt(document.getElementById('ed-timer').value) || draft.questions.length); draft.negativeMarking = parseFloat(document.getElementById('ed-negative').value);
                 
                 const qBlocks = document.querySelectorAll('#ed-q-list > div[data-index]');
                 qBlocks.forEach((block, index) => {
@@ -1936,26 +2225,30 @@
                 if(out) out.textContent='Checking AI connection…';
                 const provider=getAIProvider(), proxyUrl=getAIProxyUrl();
                 try {
-                    if(proxyUrl){
-                        const r=await fetch(proxyUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider,task:'health_check',prompt:'Reply with exactly OK'})});
-                        if(!r.ok) throw new Error('Proxy HTTP '+r.status);
+                    let answer='';
+                    if (proxyUrl) {
+                        const r=await fetch(proxyUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider,task:'doubt',prompt:'Reply with exactly OK.'})});
+                        const d=await r.json().catch(()=>({}));
+                        if(!r.ok) throw new Error(`AI proxy HTTP ${r.status}: ${d.error||d.message||'Request failed'}`);
+                        answer=d.reply||d.text||d.content||d?.choices?.[0]?.message?.content||d?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+                    } else if(provider==='groq') {
+                        const key=getAIKey('groq'); if(!key||!/^gsk_/i.test(key)) throw new Error('Groq API key missing. Admin → Settings में valid gsk_ key डालकर Save करें.');
+                        const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},body:JSON.stringify({model:GROQ_MODEL,messages:[{role:'user',content:'Reply with exactly OK.'}],max_completion_tokens:32,stream:false})});
+                        const d=await r.json().catch(()=>({})); if(!r.ok)throw new Error(`Groq HTTP ${r.status}: ${d?.error?.message||d?.error?.code||'Request failed'}`); answer=d?.choices?.[0]?.message?.content||'';
+                    } else if(provider==='openai') {
+                        const key=getAIKey('openai'); if(!key||!/^sk-/i.test(key))throw new Error('OpenAI API key missing. Admin → Settings में valid sk_ key डालकर Save करें.');
+                        const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},body:JSON.stringify({model:'gpt-4o-mini',messages:[{role:'user',content:'Reply with exactly OK.'}],max_tokens:32})});
+                        const d=await r.json().catch(()=>({})); if(!r.ok)throw new Error(`OpenAI HTTP ${r.status}: ${d?.error?.message||'Request failed'}`); answer=d?.choices?.[0]?.message?.content||'';
                     } else {
-                        const key=getAIKey(provider); if(!key) throw new Error('API key is not configured');
-                        if(provider==='groq'){
-                            const r=await fetch('https://api.groq.com/openai/v1/models',{headers:{Authorization:`Bearer ${key}`}});
-                            if(!r.ok) throw new Error('Groq HTTP '+r.status);
-                        } else if(provider==='gemini'){
-                            const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`);
-                            if(!r.ok) throw new Error('Gemini HTTP '+r.status);
-                        } else {
-                            const r=await fetch('https://api.openai.com/v1/models',{headers:{Authorization:`Bearer ${key}`}});
-                            if(!r.ok) throw new Error('OpenAI HTTP '+r.status);
-                        }
+                        const key=getAIKey('gemini'); if(!key||key.length<10)throw new Error('Gemini API key missing. Admin → Settings में valid Gemini key डालकर Save करें.');
+                        const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(key)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:'Reply with exactly OK.'}]}]})});
+                        const d=await r.json().catch(()=>({})); if(!r.ok)throw new Error(`Gemini HTTP ${r.status}: ${d?.error?.message||'Request failed'}`); answer=d?.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
                     }
-                    if(out) out.innerHTML='<span class="text-emerald-400 font-bold">✓ AI connection is working ('+provider+').</span>';
+                    if(!String(answer).trim())throw new Error('AI connected, but returned an empty response.');
+                    if(out)out.innerHTML=`<span class="text-emerald-400 font-bold">✓ ${provider.toUpperCase()} connection working.</span>`;
                     this.showToast('AI connection successful');
                 } catch(e){
-                    if(out) out.innerHTML='<span class="text-rose-400 font-bold">✕ '+String(e.message).replace(/[<>]/g,'')+'</span>';
+                    if(out)out.innerHTML='<span class="text-rose-400 font-bold">✕ '+String(e.message).replace(/[<>]/g,'')+'</span>';
                     this.showToast('AI connection failed. Check Settings.','error');
                 }
             },
@@ -1983,8 +2276,9 @@
                 } else if (mode === 'text') {
                     title = document.getElementById('ai-test-title').value.trim();
                     count = parseInt(document.getElementById('ai-q-count').value, 10);
-                    const sourceText = document.getElementById('ai-source-text').value.trim();
+                    let sourceText = document.getElementById('ai-source-text').value.trim();
                     if (!title || !sourceText) return this.showToast('Fill title and source text!', 'error');
+                    if (sourceText.length > 8000) return this.showToast('Source text बहुत लंबा है। कृपया इसे 8,000 characters से कम करें ताकि Groq limit error न आए।', 'error');
                     if (!Number.isInteger(count) || count < 2 || count > 200) return this.showToast('Enter a valid question count (2-200).', 'error');
                     btnId = 'btn-ai-text';
                     prompt = `Create exactly ${count} multiple-choice questions based strictly on the following text.
@@ -2019,12 +2313,14 @@ Text:
                 - correctIdx must be an integer from 0 to 3.
                 - Keep questions factually accurate and non-ambiguous.
                 - For text mode, use only information supported by the supplied source text.
+                - Never repeat a question or test the same fact twice using different wording, language, options, or question format.
+                - If the source cannot support the requested number of distinct questions, do not invent or repeat questions; return only genuinely distinct supported questions and explain the shortfall.
                 - For PYQ mode, preserve source questions if supplied; never claim generated practice questions are verified exact PYQs.
                 - Keep questions aligned to the requested exam, year, session and shift.
                 - Do not invent image URLs. Use an empty imageUrl unless an image URL is explicitly available in the source.`;
 
-                if (mode === 'pyq' && pyqSource.length > 45000) {
-                    return this.showToast('PYQ source बहुत लंबा है (45,000 characters से अधिक)। कृपया paper को छोटा करके या relevant sections में paste करें।', 'error');
+                if (mode === 'pyq' && pyqSource.length > 8000) {
+                    return this.showToast('PYQ source बहुत लंबा है (8,000 characters से अधिक)। कृपया इसे छोटे session/sections में paste करें ताकि Groq token limit न आए।', 'error');
                 }
 
                 const btn = document.getElementById(btnId);
@@ -2059,6 +2355,33 @@ Text:
                     if (parsed && parsed.output && Array.isArray(parsed.output.questions)) return parsed.output.questions;
                     throw new Error('AI response did not contain a questions array.');
                 };
+                // Compare the actual question wording in both languages. This catches
+                // exact repeats, translated repeats and close paraphrases.
+                const questionFingerprint = value => String(value || '')
+                    .toLocaleLowerCase()
+                    .normalize('NFKC')
+                    .replace(/[\\u200B-\\u200D\\uFEFF]/g, '')
+                    .replace(/[^\\p{L}\\p{N}]+/gu, ' ')
+                    .trim()
+                    .replace(/\\s+/g, ' ');
+                const questionTokens = value => new Set(questionFingerprint(value).split(' ').filter(t => t.length > 1));
+                const isSimilarQuestion = (a, b) => {
+                    const fa = questionFingerprint(a), fb = questionFingerprint(b);
+                    if (!fa || !fb) return false;
+                    if (fa === fb || fa.includes(fb) || fb.includes(fa)) return true;
+                    const A = questionTokens(fa), B = questionTokens(fb);
+                    if (A.size < 4 || B.size < 4) return false;
+                    let overlap = 0;
+                    for (const token of A) if (B.has(token)) overlap++;
+                    const dice = (2 * overlap) / (A.size + B.size);
+                    return dice >= 0.82;
+                };
+                const isDuplicateQuestion = (candidate, previous) => {
+                    const candidateTexts = [candidate?.text_hi, candidate?.text_en].filter(Boolean);
+                    const previousTexts = [previous?.text_hi, previous?.text_en].filter(Boolean);
+                    return candidateTexts.some(a => previousTexts.some(b => isSimilarQuestion(a, b)));
+                };
+
 
                 const normalizeQuestions = (items) => {
                     if (!Array.isArray(items) || !items.length) throw new Error('AI returned no questions.');
@@ -2120,7 +2443,7 @@ Text:
                                 'Authorization': `Bearer ${openAiKey}`
                             },
                             body: JSON.stringify({
-                                model: 'gpt-5.6-luna',
+                                model: 'gpt-4o-mini',
                                 input: [
                                     {
                                         role: 'system',
@@ -2161,12 +2484,12 @@ Text:
 
                         const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
                         // Small batches keep each response inside model output limits, including long Hindi explanations.
-                        const batchSize = 3;
+                        const batchSize = 1; // Keep each request small for low Groq TPM tiers.
                         const batches = [];
                         for (let start = 0; start < count; start += batchSize) batches.push(Math.min(batchSize, count - start));
 
                         // Discover the models actually enabled for this key. Use current production IDs as a fallback.
-                        const fallbacks = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'qwen/qwen3.8-27b'];
+                        const fallbacks = ['openai/gpt-oss-20b']; // Current Groq production replacement for retired Llama models.
                         let available = [];
                         try {
                             const mr = await fetch('https://api.groq.com/openai/v1/models', {
@@ -2184,7 +2507,7 @@ Text:
                             console.warn('Groq model discovery unavailable; using fallback model IDs.', modelErr);
                         }
                         const preferred = fallbacks.filter(id => !available.length || available.includes(id));
-                        const extra = available.filter(id => /llama|gpt-oss|qwen/i.test(id) && !fallbacks.includes(id));
+                        const extra = available.filter(id => /^(openai\/gpt-oss-20b|openai\/gpt-oss-120b|qwen\/qwen3\.8-27b)$/i.test(id) && !fallbacks.includes(id));
                         const models = [...new Set([...preferred, ...extra])].slice(0, 5);
                         if (!models.length) throw new Error('No supported text-generation model is available for this Groq key. Check model access in Groq Console.');
 
@@ -2194,16 +2517,28 @@ Text:
                             let batchPrompt = prompt
                                 .replaceAll(`exactly ${count}`, `exactly ${batchCount}`)
                                 .replaceAll(`contain exactly ${count} items`, `contain exactly ${batchCount} items`);
-                            // Make the final schema/count instructions unambiguous for each individual request.
-                            batchPrompt += `\n\nBATCH OVERRIDE: This request is only one batch. Return exactly ${batchCount} question objects, not ${count}. JSON only: {"questions":[...]}. Each question must include text_hi, text_en, options_hi (4), options_en (4), correctIdx (0-3), imageUrl (empty string), explanation.`;
+                            // Make each call generate a genuinely new question, not another paraphrase of the same stem.
+                            const previousStems = generatedQs
+                                .map((q, idx) => `${idx + 1}. HI: ${String(q.text_hi || '').trim()} | EN: ${String(q.text_en || '').trim()}`)
+                                .join('\n');
+                            batchPrompt += `\n\nBATCH OVERRIDE: This request is only one batch. Return exactly ${batchCount} question object(s), not ${count}. JSON only: {"questions":[...]}. Each question must include text_hi, text_en, options_hi (4), options_en (4), correctIdx (0-3), imageUrl (empty string), explanation.
+DIVERSITY / ANTI-REPETITION RULES (mandatory):
+- Create a substantively new question, not a rewording, translation, or option-swapped version of an earlier question.
+- Test a different fact, concept, subtopic, relationship, application, inference, experiment/observation, or misconception each time.
+- Vary the question form where the source supports it: conceptual reasoning, cause-effect, application, statement-based, example/counterexample, data/experiment interpretation, or comparison.
+- Do not ask the same underlying question twice, even with different wording or options.
+- For text mode, every answer must be supported by the pasted source. If the source does not support ${count} distinct questions, create as many genuinely distinct supported questions as possible and report insufficiency rather than padding with duplicates.
+- Previous questions already generated in this test (strictly avoid repeating these):
+${previousStems || '(None yet)'}
+Return only new question(s).`;
                             let batchQuestions = null;
                             let lastError = null;
 
                             // Retry network/transient/server/rate-limit errors; switch model and JSON/plain formats automatically.
                             const attempts = [];
                             for (const model of models) {
-                                attempts.push({ model, json: true, max_tokens: 3072 });
-                                attempts.push({ model, json: false, max_tokens: 3072 });
+                                attempts.push({ model, json: true, max_tokens: 1100 });
+                                attempts.push({ model, json: false, max_tokens: 1100 });
                             }
                             for (let ai = 0; ai < attempts.length; ai++) {
                                 const attempt = attempts[ai];
@@ -2216,8 +2551,8 @@ Text:
                                             { role: 'system', content: 'You generate high-quality Indian competitive-exam MCQs. Return only JSON with a questions array. Do not use markdown. Exactly match the count requested in the latest batch override. All fields must be present; options arrays must each have four strings; correctIdx must be 0, 1, 2, or 3.' },
                                             { role: 'user', content: batchPrompt }
                                         ],
-                                        temperature: 0.1,
-                                        max_tokens: attempt.max_tokens,
+                                        temperature: 0.65,
+                                        max_completion_tokens: attempt.max_tokens,
                                         stream: false
                                     };
                                     if (attempt.json) body.response_format = { type: 'json_object' };
@@ -2233,9 +2568,18 @@ Text:
                                         const detail = data?.error?.message || data?.error?.code || `HTTP ${res.status}`;
                                         lastError = new Error(`Groq HTTP ${res.status} (${attempt.model}): ${detail}`);
                                         if (res.status === 401 || res.status === 403) throw lastError;
+                                        if (res.status === 413 || /tokens per minute|TPM|request too large|limit 2000/i.test(detail)) {
+                                            lastError = new Error('Groq की token-per-minute limit कम है। छोटे request के साथ भी limit मिले तो 60 सेकंड बाद फिर कोशिश करें, या Groq Console में billing/limits बढ़ाएँ।');
+                                            break;
+                                        }
                                         if (res.status === 429) {
-                                            const waitSeconds = Math.min(12, Math.max(2, Number(res.headers.get('retry-after')) || 3));
-                                            await sleep(waitSeconds * 1000);
+                                            const rateText = String(detail);
+                                            if (/tokens per minute|TPM/i.test(rateText)) {
+                                                await sleep(60000);
+                                            } else {
+                                                const waitSeconds = Math.min(12, Math.max(2, Number(res.headers.get('retry-after')) || 3));
+                                                await sleep(waitSeconds * 1000);
+                                            }
                                         } else if (res.status >= 500) await sleep(Math.min(4000, 500 * (ai + 1)));
                                         continue;
                                     }
@@ -2245,6 +2589,15 @@ Text:
                                         const items = extractQuestions(raw);
                                         if (!Array.isArray(items) || items.length !== batchCount) {
                                             lastError = new Error(`Model returned ${Array.isArray(items) ? items.length : 0}/${batchCount} questions.`);
+                                            continue;
+                                        }
+                                        const repeatedInBatch = items.some((candidate, qi) =>
+                                            generatedQs.some(previous => isDuplicateQuestion(candidate, previous)) ||
+                                            items.slice(0, qi).some(previous => isDuplicateQuestion(candidate, previous))
+                                        );
+                                        if (repeatedInBatch) {
+                                            lastError = new Error('AI repeated an earlier question. Requesting a different question.');
+                                            batchPrompt += `\\nRETRY REQUIREMENT: The previous attempt repeated an existing question. Generate a different question testing a DIFFERENT fact or concept. Do not translate, paraphrase, or change options of any previous question.`;
                                             continue;
                                         }
                                         batchQuestions = items;
@@ -2261,7 +2614,7 @@ Text:
                             if (!batchQuestions) throw (lastError || new Error('Automatic recovery could not complete this batch. Check Groq key, quota, and model access.'));
                             generatedQs.push(...batchQuestions);
                             // Avoid burst requests hitting per-minute limits on free tiers.
-                            if (bi < batches.length - 1) await sleep(1200);
+                            if (bi < batches.length - 1) await sleep(2500); // Respect low-tier per-minute token limits.
                         }
                     } else {
                         const geminiKey = getAIKey('gemini');
@@ -2271,7 +2624,7 @@ Text:
                             contents: [{ parts: [{ text: prompt }] }],
                             generationConfig: { responseMimeType: "application/json", temperature: 0.2 }
                         };
-                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(geminiKey)}`;
+                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(geminiKey)}`;
                         const response = await fetch(apiUrl, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
@@ -2287,10 +2640,43 @@ Text:
 
                     generatedQs = normalizeQuestions(generatedQs);
 
+                    // Final safety net: reject exact/near-exact repeated stems before saving a draft/test.
+                    const normalizeStem = value => String(value || '')
+                        .toLocaleLowerCase()
+                        .normalize('NFKC')
+                        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+                        .replace(/[^\p{L}\p{N}]+/gu, ' ')
+                        .trim()
+                        .replace(/\s+/g, ' ');
+                    const existingStemMap = new Map();
+                    [...(window.state.db.tests || []), ...(window.state.db.drafts || [])].forEach(item => {
+                        (Array.isArray(item.questions) ? item.questions : []).forEach(q => {
+                            [normalizeStem(q.text_hi), normalizeStem(q.text_en)].filter(Boolean).forEach(key => {
+                                if (!existingStemMap.has(key)) existingStemMap.set(key, item.title || 'Existing test');
+                            });
+                        });
+                    });
+                    const seenQuestions = [];
+                    for (let i = 0; i < generatedQs.length; i++) {
+                        const q = generatedQs[i];
+                        const exactKeys = [normalizeStem(q.text_hi), normalizeStem(q.text_en)].filter(Boolean);
+                        for (const key of exactKeys) {
+                            if (existingStemMap.has(key)) {
+                                throw new Error(`Duplicate question detected at Q${i + 1}; it already exists in "${existingStemMap.get(key)}". Repeated questions were blocked.`);
+                            }
+                        }
+                        const prior = seenQuestions.findIndex(oldQ => isDuplicateQuestion(q, oldQ));
+                        if (prior !== -1) {
+                            throw new Error(`Q${i + 1} is the same as or too similar to Q${prior + 1}. No duplicate test was saved. Please regenerate with a broader source or fewer questions.`);
+                        }
+                        seenQuestions.push(q);
+                    }
+
                     const newObj = {
                         id: 'ai_gen_' + Date.now(),
                         title: title,
                         category: mode === 'pyq' ? `PYQ Session: ${pyqExam} / ${pyqSession}` : (mode === 'topic' ? 'AI Auto-Generated' : 'Extracted Material'),
+                        exam: mode === 'pyq' ? pyqExam : 'Practice', subject: mode === 'topic' ? title : 'General', section: mode === 'pyq' ? pyqSession : 'General',
                         duration: mode === 'pyq' ? pyqDuration : generatedQs.length * 1.5,
                         negativeMarking: 0.25,
                         questions: generatedQs
