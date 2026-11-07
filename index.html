@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#0d1626">
+    <meta name="theme-color" content="#0f1424">
     <meta name="mobile-web-app-capable" content="yes">
     <title>GLO ACADEMY - Free Mock Tests, Notes & Batches (MP Police, SSC, Railway, CTET)</title>
     <meta name="description" content="GLO Academy: MP Police, SSC GD, Railway, CTET/UPTET के मुफ़्त मॉक टेस्ट, PYQ, नोट्स, रैंक व कमज़ोर-टॉपिक विश्लेषण — हिंदी में, मोबाइल पर।">
@@ -49,8 +49,9 @@
                 extend: {
                     colors: {
                         glo: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0284c7', 600: '#0369a1', 900: '#0c4a6e' },
-                        slate: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#a3b1c6', 500: '#7b8aa3', 600: '#475569', 700: '#2b3a52', 800: '#172236', 900: '#0d1626', 950: '#070d1a' },
-                        sky: { 300: '#93c5fd', 400: '#60a5fa', 500: '#2563eb', 600: '#1d4ed8', 900: '#1e3a8a', 950: '#172554' },
+                        slate: { 50: '#f6f8fc', 100: '#eceff7', 200: '#dde2ef', 300: '#c3cbe0', 400: '#98a3c0', 500: '#7a86a6', 600: '#55607f', 700: '#2a3350', 800: '#1e2640', 900: '#161c30', 950: '#0f1424' },
+                        sky: { 300: '#b8c4ff', 400: '#8c9dff', 500: '#6b7fff', 600: '#5468f0', 900: '#252d6b', 950: '#171c45' },
+                        indigo: { 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4', 400: '#2dd4bf', 500: '#14b8a6', 600: '#5468f0', 900: '#134e4a', 950: '#042f2e' },
                         amber: { 300: '#fcd34d', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706', 900: '#78350f', 950: '#451a03' },
                         emerald: { 300: '#6ee7b7', 400: '#34d399', 500: '#10b981', 600: '#059669', 900: '#064e3b', 950: '#022c22' },
                         rose: { 300: '#fda4af', 400: '#fb7185', 500: '#e11d48', 600: '#be123c', 900: '#4c0519', 950: '#2a020d' },
@@ -66,7 +67,7 @@
     </script>
 
     <style>
-        body { font-family: 'Inter', 'Noto Sans Devanagari', system-ui, sans-serif; background-color: #070d1a; color: #f1f5f9; user-select: none; }
+        body { font-family: 'Inter', 'Noto Sans Devanagari', system-ui, sans-serif; background-color: #12110f; color: #f1f5f9; user-select: none; }
         .allow-select { user-select: text !important; -webkit-user-select: text !important; }
         body { -webkit-user-select: none; -webkit-touch-callout: none; }
         /* FIX: inputs/textarea must stay selectable & editable, otherwise iOS/Android WebView will not let students/admin type */
@@ -75,7 +76,7 @@
         .ed-q-block textarea, .ed-q-block input[type="text"] { font-size: 16px; }
         
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0d1626; }
+        ::-webkit-scrollbar-track { background: #1b1916; }
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
@@ -86,7 +87,7 @@
         .palette-answered { background-color: #16a34a !important; color: #fff !important; clip-path: polygon(0% 0%, 100% 0%, 100% 75%, 50% 100%, 0% 75%); }
         .palette-not-answered { background-color: #dc2626 !important; color: white !important; clip-path: polygon(0% 25%, 50% 0%, 100% 25%, 100% 100%, 0% 100%); }
         .palette-marked { background-color: #7c3aed !important; color: white !important; border-radius: 50%; }
-        .palette-not-visited { background-color: #0d1626 !important; color: #a3b1c6 !important; border-radius: 8px; border: 1px solid #2b3a52; }
+        .palette-not-visited { background-color: #1b1916 !important; color: #a8a29e !important; border-radius: 8px; border: 1px solid #3a3632; }
 
         @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
         .animate-marquee { display: inline-block; animation: marquee 25s linear infinite; }
@@ -98,7 +99,7 @@
         @keyframes slideUp { 0% { transform: translateY(100%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
     
         /* ===== Mobile-friendly admin ===== */
-        .admin-tabbar{position:sticky;top:0;z-index:30;background:rgba(2,6,23,.94);backdrop-filter:blur(8px);margin:0 -1rem;padding:.6rem 1rem;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+        .admin-tabbar{position:sticky;top:0;z-index:30;background:rgba(18,17,15,.94);backdrop-filter:blur(8px);margin:0 -1rem;padding:.6rem 1rem;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
         .admin-tabbar::-webkit-scrollbar{display:none}
         .admin-tabbar button{scroll-snap-align:start;white-space:nowrap;min-height:40px}
         .admin-root input,.admin-root select,.admin-root textarea{font-size:16px!important;max-width:100%}
@@ -124,18 +125,18 @@
         .text-\[10px\] { font-size: 12px !important; }
         .text-\[11px\] { font-size: 12.5px !important; }
         .text-xs       { font-size: 13px !important; line-height: 1.5 !important; }
-        ::placeholder { color: #8b9ab3 !important; opacity: 1 !important; }
-        :focus-visible { outline: 2px solid #38cdf2; outline-offset: 2px; }
+        ::placeholder { color: #a39e98 !important; opacity: 1 !important; }
+        :focus-visible { outline: 2px solid #f2b84b; outline-offset: 2px; }
         /* white exam/question area: keep dim text dark enough on white */
         .bg-white .text-slate-400, .bg-white .text-slate-500, .bg-white .text-slate-600 { color: #475569 !important; }
         .bg-white .text-slate-800, .bg-white .text-slate-900 { color: #0f172a !important; }
         /* question palette: clearer colours */
         .palette-not-answered { background-color: #dc2626 !important; }
-        .palette-not-visited  { background-color: #172236 !important; color: #e4e2f6 !important; border: 1px solid #475569 !important; }
+        .palette-not-visited  { background-color: #26231f !important; color: #e4e2f6 !important; border: 1px solid #475569 !important; }
 
         /* Ads */
         .glo-ad-wrap { margin: 1rem auto; max-width: 980px; padding: 0 1rem; width: 100%; min-height: 60px; }
-        .glo-ad-label { font-size: 11px; color: #a3b1c6; text-align: center; margin-bottom: 2px; letter-spacing: .04em; }
+        .glo-ad-label { font-size: 11px; color: #a8a29e; text-align: center; margin-bottom: 2px; letter-spacing: .04em; }
 
         @media (max-width: 640px) {
             input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea { font-size: 16px !important; }
@@ -154,16 +155,85 @@
         }
     
         /* ===== Professional EdTech polish ===== */
-        body { background: #070d1a; }
-        nav.sticky { background: rgba(13,22,38,.92) !important; backdrop-filter: blur(10px); border-bottom: 1px solid #1e2c44 !important; box-shadow: 0 1px 0 rgba(255,255,255,.03) !important; }
+        body { background: #12110f; }
+        nav.sticky { background: rgba(27,25,22,.92) !important; backdrop-filter: blur(10px); border-bottom: 1px solid #35312c !important; box-shadow: 0 1px 0 rgba(255,255,255,.03) !important; }
         .rounded-3xl { border-radius: 1rem !important; }
         .rounded-2xl { border-radius: .85rem !important; }
         main button, main a { transition: background-color .15s, border-color .15s, box-shadow .15s; }
-        [class*="shadow-[0_0"] { box-shadow: 0 6px 16px rgba(37,99,235,.25) !important; }
+        [class*="shadow-[0_0"] { box-shadow: 0 6px 16px rgba(84,104,240,.25) !important; }
         .animate-pulse, .animate-ping { animation: none !important; }
-        .bg-gradient-to-r.from-sky-600, .bg-gradient-to-r.from-sky-500 { background-image: none !important; background-color: #2563eb !important; }
-        .bg-gradient-to-r.from-sky-600:hover, .bg-gradient-to-r.from-sky-500:hover { background-color: #1d4ed8 !important; }
+        .bg-gradient-to-r.from-sky-600, .bg-gradient-to-r.from-sky-500 { background-image: none !important; background-color: #5468f0 !important; }
+        .bg-gradient-to-r.from-sky-600:hover, .bg-gradient-to-r.from-sky-500:hover { background-color: #4556d6 !important; }
         @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+        /* ===== THEME v6 : soft midnight-blue + indigo (easy on the eyes) ===== */
+        :root{--bg:#0f1424;--surface:#161c30;--surface2:#1b2238;--line:#2a3350;--text:#e8ecf6;--muted:#98a3c0;--pri:#5468f0;--pri-h:#6b7fff;--pri-soft:#1c2350;--warm:#f0b95a}
+        body,body.bg-slate-950{background-color:var(--bg)!important;color:var(--text)!important}
+        ::placeholder{color:#7a86a6!important}
+        :focus-visible{outline:2px solid #8c9dff!important}
+        ::-webkit-scrollbar-track{background:var(--bg)}
+        ::-webkit-scrollbar-thumb{background:#2f3a5c}
+        nav.sticky{background:rgba(15,20,36,.94)!important;border-bottom:1px solid var(--line)!important;box-shadow:none!important}
+        body > div.lg\:hidden.fixed.bottom-0{background:rgba(15,20,36,.97)!important;border-top:1px solid var(--line)!important}
+        .border-slate-800,.border-slate-700{border-color:var(--line)!important}
+        /* primary buttons: calm indigo, white text */
+        .bg-sky-600,.bg-sky-500,.bg-indigo-600,.bg-amber-500,.bg-amber-400,.bg-gradient-to-r[class*="from-sky"],.from-amber-400.to-orange-500{background-image:none!important;background-color:var(--pri)!important}
+        .hover\:bg-sky-500:hover,.hover\:bg-sky-600:hover,.hover\:bg-amber-400:hover,.bg-sky-600:hover,.bg-amber-500:hover{background-color:var(--pri-h)!important}
+        :is(.bg-sky-600,.bg-sky-500,.bg-indigo-600,.bg-amber-500,.bg-amber-400,.bg-gradient-to-r[class*="from-sky"],.from-amber-400.to-orange-500,.bg-gradient-to-tr.from-sky-500),
+        :is(.bg-sky-600,.bg-sky-500,.bg-indigo-600,.bg-amber-500,.bg-amber-400,.bg-gradient-to-r[class*="from-sky"],.from-amber-400.to-orange-500,.bg-gradient-to-tr.from-sky-500) *{color:#fff!important}
+        .bg-gradient-to-tr.from-sky-500{background-image:none!important;background-color:var(--pri)!important;border-color:var(--pri-h)!important}
+        .bg-gradient-to-br.from-slate-900{background-image:none!important;background-color:var(--surface)!important}
+        .bg-purple-600,.bg-purple-500{background-color:#7c6cf0!important}
+        /* top ticker: quiet strip instead of a bright yellow bar */
+        #ticker-bar{background:#1a2142!important;color:#cdd5f5!important;border-bottom:1px solid var(--line);box-shadow:none!important}
+        #ticker-bar p,#ticker-bar i{color:#cdd5f5!important}
+        #ticker-bar span.bg-amber-400{background:var(--warm)!important;color:#1a1405!important}
+        #ticker-bar span.bg-amber-400 i{color:#1a1405!important}
+        #ticker-bar #db-status-indicator,#ticker-bar #db-status-indicator *{color:#e8ecf6!important}
+        /* question palette */
+        .palette-answered{background-color:#1f9d6b!important}
+        .palette-not-answered{background-color:#d9525f!important}
+        .palette-marked{background-color:#7c6cf0!important}
+        .palette-not-visited{background-color:var(--surface2)!important;color:#c3cbe0!important;border:1px solid #3a4468!important}
+        /* exam question area */
+        .bg-white{background-color:#131a2e!important;color:var(--text)!important}
+        .bg-white .text-slate-900,.bg-white .text-slate-800{color:var(--text)!important}
+        .bg-white .text-slate-600,.bg-white .text-slate-500,.bg-white .text-slate-400{color:#a9b3cf!important}
+        .bg-white .bg-slate-50{background-color:#182038!important}
+        .bg-white .bg-slate-100{background-color:#1e2742!important}
+        .bg-white .border-slate-200,.bg-white .border-slate-300{border-color:#2f3a5c!important}
+        .bg-white .hover\:bg-slate-100:hover{background-color:#1e2742!important}
+        .bg-white .hover\:border-slate-300:hover{border-color:#55607f!important}
+        .bg-sky-50{background-color:var(--pri-soft)!important}
+        .border-sky-500{border-color:#8c9dff!important}
+        .text-sky-900{color:#e0e5ff!important}
+        .text-sky-700{color:#b8c4ff!important}
+        .bg-emerald-50{background-color:#0e2b27!important}
+        .text-emerald-700{color:#6ee7b7!important}
+        .border-emerald-200{border-color:#1f6b57!important}
+        .bg-rose-50{background-color:#2e1520!important}
+        .text-rose-700{color:#fda4af!important}
+        .border-rose-200{border-color:#7f2d44!important}
+        /* admin */
+        #app-view-container:has(.admin-root){background:var(--bg)}
+        .admin-root>div:first-child{background:var(--surface)!important;border:1px solid var(--line)!important;border-bottom:3px solid var(--pri)!important;box-shadow:none!important}
+        .admin-root>div:first-child .bg-amber-500\/10{background:var(--pri-soft)!important;color:#b8c4ff!important;border-color:#33408a!important}
+        .admin-tabbar{background:rgba(15,20,36,.96)!important;border-bottom:1px solid var(--line)}
+        .admin-tabbar button{border-radius:12px!important;font-weight:700;background:var(--surface)!important;color:#c3cbe0!important;border:1px solid var(--line)!important;box-shadow:none!important}
+        .admin-tabbar button:hover{background:var(--surface2)!important;color:#fff!important}
+        .admin-tabbar button[data-active]{background:var(--pri)!important;color:#fff!important;border-color:var(--pri-h)!important}
+        .admin-root input:focus,.admin-root select:focus,.admin-root textarea:focus{border-color:#8c9dff!important;box-shadow:0 0 0 2px rgba(107,127,255,.25)!important;outline:none}
+        .admin-root table thead tr{background:var(--surface2)!important}
+        .admin-root table thead th{color:#c3cbe0!important}
+        .admin-root tbody tr:hover{background:#1a2138!important}
+        #admin-stats-card>div{background:var(--surface)!important;border:1px solid var(--line)!important;box-shadow:none!important;border-left-width:4px!important}
+        #admin-stats-card>div:nth-child(1){border-left-color:#6b7fff!important}
+        #admin-stats-card>div:nth-child(2){border-left-color:#34d399!important}
+        #admin-stats-card>div:nth-child(3){border-left-color:var(--warm)!important}
+        #admin-stats-card>div:nth-child(4){border-left-color:#a78bfa!important}
+        #admin-stats-card>div:nth-child(5){border-left-color:#fb7185!important}
+        #admin-stats-card>div .text-2xl{color:#fff!important}
+        #admin-extra button{background:var(--surface)!important;border:1px solid var(--line)!important;color:var(--text)!important}
     </style>
 </head>
 <body class="h-full flex flex-col min-h-screen bg-slate-950 text-slate-100">
@@ -1706,7 +1776,7 @@
                                     <div class="mt-5 p-5 rounded-2xl bg-indigo-950/30 border border-indigo-800/40 space-y-2 relative overflow-hidden">
                                         <div class="absolute -right-6 -top-6 w-20 h-20 bg-amber-500/10 rounded-full blur-xl pointer-events-none"></div>
                                         <h5 class="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-lightbulb text-amber-300"></i> व्याख्या (Explanation)</h5>
-                                        <p class="font-devanagari leading-relaxed text-indigo-100 text-sm">${q.explanation}</p>
+                                        <p class="font-devanagari leading-relaxed text-indigo-100 text-[15px] whitespace-pre-line">${q.explanation}</p>
                                     </div>
                                 </div>
                                 `
@@ -3237,7 +3307,8 @@
             },
 
             async testAIConnection() {
-                const out=document.getElementById('ai-health-result');
+                const outs=[...document.querySelectorAll('[id="ai-health-result"]')];
+                const out=outs.length?{set textContent(v){outs.forEach(o=>o.textContent=v)},set innerHTML(v){outs.forEach(o=>o.innerHTML=v)}}:null;
                 if(out) out.textContent='Checking AI connection…';
                 const provider=getAIProvider(), proxyUrl=getAIProxyUrl();
                 try {
@@ -3265,7 +3336,7 @@
                 return p === 'gemini' ? 500000 : p === 'claude' ? 200000 : p === 'openai' ? 120000 : 60000;
             },
             // Small, reliable batches reduce provider output truncation for long bilingual MCQs.
-            providerBatchSize(p) { return 2; },
+            providerBatchSize(p) { return ({ gemini: 12, claude: 10, groq: 8, cerebras: 8, openrouter: 6, openai: 8 })[p] || 8; },
             getProviderOrder(first) {
                 const fmt = { claude: k => /^sk-ant-/i.test(k), groq: k => /^gsk_/i.test(k), openai: k => /^sk-/i.test(k), gemini: k => k.length >= 10, openrouter: k => /^sk-or-/i.test(k) || k.length >= 20, cerebras: k => /^csk-/i.test(k) || k.length >= 20 };
                 const all = ['claude', 'gemini', 'groq', 'cerebras', 'openrouter', 'openai'];
@@ -3473,6 +3544,7 @@ Text:
                 - options_hi and options_en must each contain exactly 4 strings.
                 - correctIdx must be an integer from 0 to 3.
                 - Keep questions factually accurate and non-ambiguous.
+                - EXPLANATION QUALITY IS MANDATORY: the "explanation" field must be a detailed Hindi explanation of 3-5 sentences — (1) the core concept/fact/formula, (2) why the correct option is right (show step-by-step working for numerical/reasoning questions), (3) briefly why each wrong option is wrong, (4) a short "टिप:" exam shortcut or memory trick. Never write a one-line explanation.
                 - Text/PDF mode uses a two-stage source-first strategy: first create questions from the supplied material; if it cannot support the requested total, later fallback batches may use reliable general knowledge on the same subject/topic to complete the target.
                 ${(mode === 'text' || mode === 'pdf')
                     ? `- In the initial source phase, cover every distinct fact, name, number, date, definition, cause, effect, example, list and comparison in the supplied material. Use different question styles where useful, but do not force unsupported questions from a very short source. In fallback batches only, add accurate standard exam-level questions from reliable general knowledge closely related to the source topic until the requested total is reached. Clearly identify these extra questions in the Hindi explanation as "अतिरिक्त सामान्य ज्ञान"; never falsely claim they came from the supplied text.`
@@ -3515,11 +3587,12 @@ Text:
                             // object was cut off by a provider output limit.
                             const recoverCompleteObjects = input => {
                                 const out = []; let depth = 0, start = -1, inString = false, escaped = false;
+                                if (/^\s*\{/.test(input)) { const k = input.indexOf('['); if (k >= 0) input = input.slice(k + 1); }
                                 for (let i = 0; i < input.length; i++) {
                                     const ch = input[i];
                                     if (inString) {
                                         if (escaped) escaped = false;
-                                        else if (ch === '\\\\') escaped = true;
+                                        else if (ch === '\\') escaped = true;
                                         else if (ch === '"') inString = false;
                                         continue;
                                     }
@@ -3618,9 +3691,9 @@ Text:
                         const wait = ms => new Promise(r => setTimeout(r, ms));
                         const order = proxyUrl ? ['proxy'] : this.getProviderOrder(provider);
                         if (!order.length) throw new Error(`Missing ${provider} Key`);
-                        const bsz = pv => 2;
+                        const bsz = pv => (proxyUrl ? 10 : ({ gemini: 15, claude: 12, groq: 8, cerebras: 8, openrouter: 6, openai: 8 })[pv] || 8);
                         const bank = []; [...(window.state.db.tests || []), ...(window.state.db.drafts || [])].forEach(t => (Array.isArray(t.questions) ? t.questions : []).forEach(q => bank.push(q)));
-                        let skippedDup = 0, skippedBad = 0, lastErr = null, finished = 0, totalJobs = 0;
+                        let skippedDup = 0, skippedBad = 0, lastErr = null, finished = 0, totalJobs = 0, rateHits = 0;
                         const dead = new Set(), usedProviders = new Set(), startT = Date.now();
                         const srcText = mode === 'pyq' ? pyqSource : mode === 'pdf' ? (document.getElementById('pdf-source-text')?.value || '').trim() : mode === 'text' ? (document.getElementById('ai-source-text')?.value || '').trim() : '';
                         // Long source: each batch gets only its own excerpt (not the whole text) => far fewer tokens, faster, less duplication.
@@ -3658,7 +3731,7 @@ Text:
                             }
                             throw err;
                         };
-                        const SYS = 'You generate high-quality Indian competitive-exam MCQs. Return only JSON with a questions array, no markdown. Each item: text_hi, text_en, options_hi (4), options_en (4), correctIdx (0-3), imageUrl (empty string), explanation (1 short Hindi sentence), subject (short subject name), topic (2-4 word sub-topic).';
+                        const SYS = 'You generate high-quality Indian competitive-exam MCQs. Return only JSON with a questions array, no markdown. Each item: text_hi, text_en, options_hi (4), options_en (4), correctIdx (0-3), imageUrl (empty string), explanation (DETAILED Hindi explanation, 3-5 sentences: why the correct option is right with the underlying concept/fact/formula or step-by-step working, why each wrong option is wrong, and one short exam tip/trick), subject (short subject name), topic (2-4 word sub-topic).';
                         const runJob = async (job, wave) => {
                             let pp = prompt.split(`exactly ${count}`).join(`exactly ${job.n}`);
                             const isSourceMode = mode === 'text' || mode === 'pdf';
@@ -3682,19 +3755,19 @@ Text:
                                     pp += `\n\nFALLBACK PHASE — IMPORTANT OVERRIDE: The initial source-based batches have already been attempted and the target is still incomplete. Generate the missing ${job.n} questions using accurate, standard Indian competitive-exam knowledge closely related to the subject/topic inferred from the source title and text. You MAY use facts not explicitly stated in the supplied text. Do not repeat or paraphrase any already-created question or test the same fact again. Do not invent obscure facts, dates, statistics, or uncertain claims. Prefix the Hindi explanation with "अतिरिक्त सामान्य ज्ञान: ". Do not say these fallback questions were present in the source. Return exactly ${job.n} complete question objects as JSON {"questions":[...]}.`;
                                 } else {
                                     pp += `\nQUESTION STYLE for this batch: ${ANG[(job.round + (wave * 3)) % ANG.length]}. Use distinct details from the supplied text.`;
-                                    pp += `\n\nSOURCE-FIRST BATCH: use only the supplied source. If it does not contain enough distinct facts, return the supported questions; later fallback batches will complete the target. Return up to ${job.n} complete question objects as JSON {"questions":[...]}. Keep explanations to ONE short Hindi sentence.`;
+                                    pp += `\n\nSOURCE-FIRST BATCH: use only the supplied source. If it does not contain enough distinct facts, return the supported questions; later fallback batches will complete the target. Return up to ${job.n} complete question objects as JSON {"questions":[...]}. Write a DETAILED Hindi explanation for every question (3-5 sentences: concept, why the correct option is right, why the other options are wrong, plus a quick exam tip).`;
                                 }
                                 pp += `\n\nBATCH SIZE: Aim for exactly ${job.n} valid question objects; never include incomplete options or uncertain answers.`;
-                            } else pp += `\n\nBATCH OVERRIDE: This request is one batch. Return exactly ${job.n} question objects as JSON {"questions":[...]}. Every question must test a DIFFERENT fact/concept. Keep explanations to ONE short Hindi sentence.`;
+                            } else pp += `\n\nBATCH OVERRIDE: This request is one batch. Return exactly ${job.n} question objects as JSON {"questions":[...]}. Every question must test a DIFFERENT fact/concept. Write a DETAILED Hindi explanation for every question (3-5 sentences: concept, why the correct option is right, why the other options are wrong, plus a quick exam tip).`;
                             if (wave > 0 && generatedQs.length) pp += `\nAlready created (do NOT repeat):\n` + generatedQs.slice(-150).map(q => '- ' + String(q.text_en || q.text_hi).slice(0, 70)).join('\n');
                             const tryOrder = [job.prov, ...order.filter(x => x !== job.prov)];
                             for (const pv of tryOrder) {
                                 if (dead.has(pv)) continue;
                                 try {
-                                    const raw = pv === 'proxy' ? await proxyCall(pp) : await this.callAIProvider(pv, pp, { json: true, failFast: tryOrder.length > 1, timeout: 60000, maxTokens: Math.min(12000, job.n * 1700 + 1000), system: SYS });
+                                    const raw = pv === 'proxy' ? await proxyCall(pp) : await this.callAIProvider(pv, pp, { json: true, failFast: tryOrder.length > 1, timeout: 90000, maxTokens: Math.min(14000, job.n * 1300 + 1200), system: SYS });
                                     ingest(extractQuestions(raw)); usedProviders.add(pv);
                                     finished++; setProg(`${finished}/${totalJobs} batch`); return;
-                                } catch (e) { lastErr = e; if (/HTTP 401|HTTP 403|Missing .* Key/i.test(String(e.message))) dead.add(pv); }
+                                } catch (e) { lastErr = e; if (/HTTP 401|HTTP 403|Missing .* Key/i.test(String(e.message))) dead.add(pv); if (/429|rate/i.test(String(e.message))) { rateHits++; await wait(2500); } }
                             }
                             finished++; setProg(`${finished}/${totalJobs} batch`);
                         };
@@ -3705,7 +3778,7 @@ Text:
                             totalJobs = jobs.length; finished = 0; setProg(`${jobs.length} batch शुरू`);
                             // Keep concurrency modest: large parallel bursts often trigger rate limits
                             // and cause incomplete batches on free-tier providers.
-                            const CONC = 1; let ptr = 0;
+                            const CONC = rateHits >= 3 ? 2 : (proxyUrl ? 6 : Math.min(6, Math.max(4, live.length * 2))); let ptr = 0;
                             await Promise.all(Array.from({ length: Math.min(CONC, jobs.length) }, async () => { while (ptr < jobs.length && generatedQs.length < count) { await runJob(jobs[ptr++], wave); } }));
                         };
                         if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> 0/${count} MCQ बन रहे हैं · Review बंद है`;
@@ -3713,7 +3786,7 @@ Text:
                         // Generate in small batches, then keep requesting only the missing
                         // questions. A partial provider response must never send a short test
                         // to Review Bank.
-                        await runWave(count, 0);
+                        await runWave(count + Math.ceil(count * 0.12), 0);
                         let idleWaves = 0;
                         for (let w = 1; w <= 60 && generatedQs.length < count; w++) {
                             const before = generatedQs.length;
@@ -3721,7 +3794,7 @@ Text:
                             setProg(`${before}/${count} बने · ${need} बाकी${(mode === 'text' || mode === 'pdf') ? ' · AI knowledge fallback' : ''}`);
                             await runWave(need, w);
                             idleWaves = generatedQs.length === before ? idleWaves + 1 : 0;
-                            if (idleWaves >= 12) break;
+                            if (idleWaves >= 5) break;
                         }
                         if (generatedQs.length < count) {
                             const detail = lastErr ? ` आखिरी त्रुटि: ${String(lastErr.message).slice(0, 140)}` : '';
@@ -4562,9 +4635,9 @@ Answer Key
     const W = 320, H = 130, P = 22, pts = subs.map((s, i) => [P + i * (W - 2 * P) / (subs.length - 1), H - P - Math.max(0, Math.min(100, Number(s.percentage) || 0)) / 100 * (H - 2 * P), Number(s.percentage) || 0]);
     const first = pts[0][2], last = pts[pts.length - 1][2], diff = Math.round(last - first);
     return `<div class="bg-slate-900 border border-slate-700 rounded-3xl p-4 sm:p-6 space-y-2"><div class="flex justify-between items-center gap-2"><h3 class="font-black text-white font-devanagari"><i class="fa-solid fa-chart-line text-emerald-400 mr-2"></i>आपकी प्रगति (पिछले ${subs.length} टेस्ट)</h3><span class="text-sm font-black ${diff >= 0 ? 'text-emerald-300' : 'text-rose-300'}">${diff >= 0 ? '▲' : '▼'} ${Math.abs(diff)}%</span></div>
-      <svg viewBox="0 0 ${W} ${H}" class="w-full" role="img" aria-label="Score trend"><line x1="${P}" y1="${H - P}" x2="${W - P}" y2="${H - P}" stroke="#475569"/><line x1="${P}" y1="${P}" x2="${W - P}" y2="${P}" stroke="#2b3a52" stroke-dasharray="3 3"/>
-      <polyline fill="none" stroke="#38cdf2" stroke-width="2.5" stroke-linejoin="round" points="${pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}"/>
-      ${pts.map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.5" fill="#00e600"/><text x="${p[0].toFixed(1)}" y="${(p[1] - 7).toFixed(1)}" font-size="9" fill="#e4e2f6" text-anchor="middle">${Math.round(p[2])}</text>`).join('')}</svg>
+      <svg viewBox="0 0 ${W} ${H}" class="w-full" role="img" aria-label="Score trend"><line x1="${P}" y1="${H - P}" x2="${W - P}" y2="${H - P}" stroke="#525252"/><line x1="${P}" y1="${P}" x2="${W - P}" y2="${P}" stroke="#2e2e2e" stroke-dasharray="3 3"/>
+      <polyline fill="none" stroke="#8c9dff" stroke-width="2.5" stroke-linejoin="round" points="${pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}"/>
+      ${pts.map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.5" fill="#00e600"/><text x="${p[0].toFixed(1)}" y="${(p[1] - 7).toFixed(1)}" font-size="9" fill="#e5e5e5" text-anchor="middle">${Math.round(p[2])}</text>`).join('')}</svg>
       <p class="text-xs text-slate-300 font-devanagari">हर बिंदु = एक टेस्ट का % स्कोर। ऊपर जाती रेखा = सुधार 👍</p>
       <button onclick="window.app.startMistakeQuiz()" class="w-full bg-purple-500 hover:bg-purple-400 text-white font-black py-3 rounded-xl text-sm font-devanagari"><i class="fa-solid fa-rotate-left mr-2"></i>अपनी गलतियों का Revision Quiz दें</button></div>`;
   }
@@ -4660,7 +4733,7 @@ Answer Key
   app.render = function () { const r = orig.apply(this, arguments); try { mark(); } catch (_) {} return r; };
   const up = document.createElement('button');
   up.id = 'back-top'; up.setAttribute('aria-label', 'ऊपर जाएँ'); up.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
-  up.style.cssText = 'position:fixed;right:14px;bottom:84px;z-index:35;width:44px;height:44px;border-radius:50%;background:#2563eb;color:#fff;border:0;box-shadow:0 4px 12px rgba(0,0,0,.4);display:none';
+  up.style.cssText = 'position:fixed;right:14px;bottom:84px;z-index:35;width:44px;height:44px;border-radius:50%;background:#5468f0;color:#fff;border:0;box-shadow:0 4px 12px rgba(0,0,0,.4);display:none';
   up.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
   document.body.appendChild(up);
   window.addEventListener('scroll', () => { up.style.display = window.scrollY > 600 && window.state.currentView !== 'cbt-exam' ? 'block' : 'none'; }, { passive: true });
@@ -4694,7 +4767,7 @@ Answer Key
       bar.innerHTML = '<button onclick="window.app.exportStudentsCsv()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-sm font-bold px-4 py-2.5 rounded-xl"><i class="fa-solid fa-file-csv mr-2 text-emerald-400"></i>Students CSV</button><button onclick="window.app.exportBackup()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-sm font-bold px-4 py-2.5 rounded-xl"><i class="fa-solid fa-database mr-2 text-sky-400"></i>Backup (Tests/Notes/Batches)</button>';
       box.insertBefore(bar, box.firstChild);
     }
-    if (v === 'result' && window.state.lastSub && !document.getElementById('share-result')) {
+    if (false && v === 'result' && window.state.lastSub && !document.getElementById('share-result')) {
       const b = document.createElement('button'); b.id = 'share-result'; b.onclick = () => app.shareResult();
       b.className = 'mx-auto my-4 flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl text-sm font-devanagari';
       b.innerHTML = '<i class="fa-brands fa-whatsapp text-lg"></i> Result दोस्तों को भेजें'; box.insertBefore(b, box.firstChild);
@@ -4705,5 +4778,61 @@ Answer Key
   try { addExtras(); } catch (_) {}
 })();
 </script>
+<script>
+/* ===== Admin: purane questions ki explanation AI se detailed karein ===== */
+(function () {
+  const app = window.app; if (!app) return;
+  app.enrichDraftExplanations = async function () {
+    if (app.aiGenBusy) return app.showToast('एक AI काम पहले से चल रहा है।', 'error');
+    const draft = app.edSyncFromDom(); if (!draft) return;
+    const todo = draft.questions.map((q, i) => ({ q, i })).filter(x => String(x.q.explanation || '').trim().length < 160 && (x.q.text_hi || x.q.text_en));
+    if (!todo.length) return app.showToast('सभी प्रश्नों की explanation पहले से detailed है ✔');
+    const proxy = getAIProxyUrl(), order = proxy ? ['proxy'] : app.getProviderOrder(getAIProvider());
+    if (!order.length) return app.showToast('पहले AI key / Worker URL Save करें।', 'error');
+    app.aiGenBusy = true;
+    const btn = document.getElementById('ed-enrich-btn'), orig = btn ? btn.innerHTML : '';
+    let done = 0, fail = 0, ptr = 0, hits = 0;
+    const size = proxy ? 8 : ({ gemini: 12, claude: 10 })[order[0]] || 8, batches = [];
+    for (let k = 0; k < todo.length; k += size) batches.push(todo.slice(k, k + size));
+    const paint = () => { if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> ${done}/${todo.length}`; };
+    const SYS = 'You are an expert Indian competitive-exam teacher. Return only valid JSON, no markdown.';
+    const parse = raw => { let t = String(raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, ''); const m = t.match(/\{[\s\S]*\}/); const o = JSON.parse(m ? m[0] : t); return Array.isArray(o) ? o : (o.items || o.questions || []); };
+    const run = async b => {
+      const L = 'ABCD', list = b.map((x, n) => `#${n}\nQ: ${x.q.text_hi || x.q.text_en}\n` + (x.q.options_hi || []).map((o, k) => `${L[k]}. ${o}`).join('\n') + `\nसही उत्तर: ${L[x.q.correctIdx]}`).join('\n\n');
+      const prompt = `नीचे ${b.length} MCQ हैं। हर एक के लिए 3-5 वाक्यों की विस्तृत हिंदी व्याख्या लिखें: (1) मूल concept/तथ्य/सूत्र, (2) सही उत्तर क्यों सही है (numerical में step-by-step), (3) बाकी options क्यों गलत हैं, (4) अंत में "टिप:" से एक shortcut/याद रखने की trick। सही उत्तर वही रखें जो दिया गया है। सिर्फ JSON दें: {"items":[{"n":0,"explanation":"..."}]}\n\n${list}`;
+      for (const pv of order) {
+        try {
+          let raw;
+          if (pv === 'proxy') { const r = await fetch(proxy, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task: 'doubt', prompt }) }); if (!r.ok) throw new Error('Proxy ' + r.status); const d = await r.json(); raw = d.reply || d.text || d.content || ''; }
+          else raw = await app.callAIProvider(pv, prompt, { json: true, failFast: order.length > 1, timeout: 90000, maxTokens: Math.min(14000, b.length * 900 + 1000), system: SYS });
+          let n0 = 0;
+          parse(raw).forEach(it => { const x = b[Number(it.n)]; const e = String(it.explanation || '').trim(); if (x && e.length > 40) { draft.questions[x.i].explanation = e; n0++; } });
+          done += b.length; paint(); return n0;
+        } catch (e) { if (/429|rate/i.test(String(e.message))) { hits++; await new Promise(r => setTimeout(r, 2500)); } }
+      }
+      fail += b.length; done += b.length; paint(); return 0;
+    };
+    try {
+      paint();
+      const conc = proxy ? 3 : 3;
+      await Promise.all(Array.from({ length: Math.min(conc, batches.length) }, async () => { while (ptr < batches.length) await run(batches[ptr++]); }));
+      dbService.syncToLocalCache(); await dbService.saveDocument('drafts', draft.id, draft, { silent: true });
+      app.showToast(fail ? `${todo.length - fail} प्रश्नों की explanation बनी, ${fail} में दिक्कत — दोबारा दबाएँ।` : `✔ ${todo.length} प्रश्नों की detailed explanation बन गई।`, fail ? 'error' : 'success');
+    } catch (e) { console.error(e); app.showToast('Explanation नहीं बन पाई: ' + (e.message || e), 'error'); }
+    finally { app.aiGenBusy = false; app.render(); }
+  };
+  const prev = app.afterRender;
+  app.afterRender = function () {
+    prev.call(this);
+    try {
+      if (window.state.currentView === 'admin-dashboard' && window.state.editingDraftId && !document.getElementById('ed-enrich-btn')) {
+        const save = document.querySelector('button[onclick="window.app.saveDraftProgress()"]');
+        if (save) save.insertAdjacentHTML('beforebegin', '<button type="button" id="ed-enrich-btn" onclick="window.app.enrichDraftExplanations()" class="bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white px-3 py-2 rounded-xl text-xs font-black"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> AI से Explanation detailed करें</button>');
+      }
+    } catch (_) {}
+  };
+})();
+</script>
+
 </body>
 </html>
