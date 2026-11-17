@@ -98,6 +98,21 @@
         
         @keyframes slideUp { 0% { transform: translateY(100%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
     
+
+        /* ===== Admin tool launcher (mobile first) ===== */
+        .admin-toolnav{overflow:visible!important;scroll-snap-type:none!important;display:block!important}
+        .admin-tool-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.7rem 1rem;border-radius:14px;font-weight:800;font-size:.9rem;background:var(--pri,#6b7fff)!important;color:#fff!important;border:0!important}
+        #admin-tools-panel{margin-top:.5rem;max-height:70vh;overflow-y:auto;-webkit-overflow-scrolling:touch;background:rgba(15,20,36,.98);border:1px solid var(--line,#2a3350);border-radius:16px;padding:.75rem}
+        @media (min-width:1024px){#admin-tools-panel{margin-top:0;max-height:none;background:transparent;border:0;padding:0}}
+        .admin-tool-group{margin-bottom:.75rem}.admin-tool-group:last-child{margin-bottom:0}
+        .admin-tool-group-title{font-size:.7rem;font-weight:800;letter-spacing:.04em;color:#8c9dff;margin:0 0 .4rem .15rem}
+        .admin-tool-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem}
+        @media (min-width:640px){.admin-tool-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+        @media (min-width:1024px){.admin-tool-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}}
+        .admin-tool-tile{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:.3rem;padding:.65rem .25rem;min-height:64px;text-align:center;white-space:normal!important;line-height:1.15;font-size:.7rem;font-weight:700;border-radius:12px!important;background:var(--surface,#1a2138)!important;color:#c3cbe0!important;border:1px solid var(--line,#2a3350)!important}
+        .admin-tool-tile i{font-size:1.15rem}
+        .admin-tool-tile[data-active]{background:var(--pri,#6b7fff)!important;color:#fff!important}
+
         /* ===== Mobile-friendly admin ===== */
         .admin-tabbar{position:sticky;top:0;z-index:30;background:rgba(18,17,15,.94);backdrop-filter:blur(8px);margin:0 -1rem;padding:.6rem 1rem;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
         .admin-tabbar::-webkit-scrollbar{display:none}
@@ -525,7 +540,14 @@
             let kept = ''; try { kept = localStorage.getItem('glo_aikeep_' + provider) || ''; } catch (_) {}
             return sessionKey || kept || (provider === 'groq' ? DEFAULT_GROQ_API_KEY : '');
         };
-        const setAIKey = (provider, value) => { if (AI_SESSION_KEYS[provider]) safeSessionSet(AI_SESSION_KEYS[provider], (value || '').trim()); };
+        const setAIKey = (provider, value) => {
+            if (!AI_SESSION_KEYS[provider]) return;
+            const v = (value || '').trim();
+            safeSessionSet(AI_SESSION_KEYS[provider], v);
+            // Persist on THIS device so the key is not asked again; empty value = remove.
+            try { if (v) localStorage.setItem('glo_aikeep_' + provider, v); else localStorage.removeItem('glo_aikeep_' + provider); } catch (_) {}
+        };
+        const getAdminSecret = () => { let s = safeSessionGet('glo_admin_secret', ''); if (!s) { try { s = localStorage.getItem('glo_admin_secret') || ''; } catch (_) {} } return s; };
         const clearLegacyAIKeys = () => ['glo_openai_key','glo_gemini_key','glo_groq_key'].forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
         clearLegacyAIKeys();
 
@@ -917,7 +939,7 @@
             shouldLiveRender(view) {
                 if (!['home', 'test-series', 'batches', 'admin-dashboard', 'leaderboard'].includes(view)) return false;
                 if (view !== 'admin-dashboard') return true;
-                if (this.aiGenBusy || (this.bulkImageQuestions || []).length || window.state.editingDraftId || ['pdf-test', 'ads', 'settings'].includes(window.state.adminTab)) return false;
+                if (this.aiGenBusy || (this.bulkImageQuestions || []).length || window.state.editingDraftId || ['pdf-test', 'ads', 'settings', 'ppt'].includes(window.state.adminTab)) return false;
                 const el = document.activeElement; return !(el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) && document.getElementById('app-view-container')?.contains(el));
             },
 
@@ -1088,9 +1110,9 @@
                             ${notes.map(n => `
                                 <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between shadow-xl hover:border-slate-700 transition">
                                     <div class="space-y-3"><span class="px-3 py-1 bg-rose-500/20 text-rose-400 rounded-full text-[10px] font-bold border border-rose-500/30">${n.subject}</span><h3 class="text-base font-bold text-white font-devanagari leading-snug">${n.title}</h3></div>
-                                    <a href="${n.pdfUrl}" target="_blank" class="mt-5 w-full bg-slate-800 hover:bg-rose-600 text-white font-bold py-2.5 rounded-xl text-xs transition border border-slate-700 font-devanagari flex items-center justify-center gap-2">
+                                    ${n.deckJson ? `<button type="button" onclick="window.app.pp.presentNote('${n.id}')" class="mt-5 w-full bg-fuchsia-700 hover:bg-fuchsia-600 text-white font-bold py-2.5 rounded-xl text-xs transition border border-fuchsia-500/40 font-devanagari flex items-center justify-center gap-2"><i class="fa-solid fa-display"></i> Slides देखें</button><button type="button" onclick="window.app.pp.quizNote('${n.id}')" class="mt-2 w-full bg-violet-700 hover:bg-violet-600 text-white font-bold py-2.5 rounded-xl text-xs transition border border-violet-500/40 font-devanagari flex items-center justify-center gap-2">🎮 Quiz खेलो</button>` : `<a href="${n.pdfUrl}" target="_blank" class="mt-5 w-full bg-slate-800 hover:bg-rose-600 text-white font-bold py-2.5 rounded-xl text-xs transition border border-slate-700 font-devanagari flex items-center justify-center gap-2">
                                         <i class="fa-solid fa-file-pdf text-rose-400"></i> नोट्स देखें / डाउनलोड करें
-                                    </a>
+                                    </a>`}
                                 </div>
                             `).join('')}
                             ${notes.length === 0 ? '<div class="col-span-full p-8 text-center text-slate-500">कोई नोट्स उपलब्ध नहीं हैं।</div>' : ''}
@@ -1841,9 +1863,20 @@
                             </button>
                         </div>
 
-                        <div class="admin-tabbar flex gap-2 overflow-x-auto shrink-0">
-                            ${[['students','Students','fa-users'],['results','Results','fa-square-poll-vertical'],['ai-gen','AI Test','fa-robot'],['pdf-test','PDF/Text→Test','fa-file-pdf'],['pyq-session','PYQ Mock','fa-calendar-days'],['bulk-image-test','Photo→Test','fa-image'],['link-test','Link→Test','fa-link'],['manual-builder','Manual','fa-pen-to-square'],['review','Review','fa-clipboard-check'],['tests-mgr','Tests','fa-list-check'],['batches','Batches','fa-layer-group'],['notes','Notes','fa-file-pdf'],['ads','Ads (AdSense)','fa-rectangle-ad'],['settings','Settings','fa-gear']].map(([id,label,icon]) => `<button ${window.state.adminTab===id?'data-active="1"':''} onclick="window.app.setAdminTab('${id}')" class="shrink-0 px-4 py-2 rounded-xl font-bold text-xs transition flex items-center gap-1.5 ${window.state.adminTab===id?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300 hover:bg-slate-700'}"><i class="fa-solid ${icon}"></i>${label}</button>`).join('')}
-                        </div>
+                        ${(() => {
+                            const groups = [
+                                ['👥 Students', [['students','Students','fa-users'],['results','Results','fa-square-poll-vertical']]],
+                                ['🤖 Test बनाएँ', [['ai-gen','AI Test','fa-robot'],['pdf-test','PDF/Text→Test','fa-file-pdf'],['pyq-session','PYQ Mock','fa-calendar-days'],['bulk-image-test','Photo→Test','fa-image'],['link-test','Link→Test','fa-link'],['manual-builder','Manual','fa-pen-to-square']]],
+                                ['🗂️ Manage', [['review','Review','fa-clipboard-check'],['tests-mgr','Tests','fa-list-check'],['batches','Batches','fa-layer-group'],['notes','Notes','fa-file-pdf']]],
+                                ['⚙️ Extra', [['ppt','Slides (PPT)','fa-display'],['ads','Ads (AdSense)','fa-rectangle-ad'],['settings','Settings (API)','fa-gear']]]
+                            ];
+                            const all = groups.flatMap(g => g[1]), cur = all.find(t => t[0] === window.state.adminTab) || all[0];
+                            const tile = ([id,label,icon]) => `<button ${window.state.adminTab===id?'data-active="1"':''} onclick="window.app.setAdminTab('${id}')" class="admin-tool-tile"><i class="fa-solid ${icon}"></i><span>${label}</span></button>`;
+                            return `<div class="admin-tabbar admin-toolnav">
+                                <button type="button" onclick="window.app.toggleAdminTools()" class="admin-tool-toggle lg:hidden"><span class="flex items-center gap-2"><i class="fa-solid ${cur[2]}"></i>${cur[1]}</span><span class="text-xs font-bold opacity-80">सभी Tools <i class="fa-solid fa-chevron-down ml-1"></i></span></button>
+                                <div id="admin-tools-panel" class="hidden lg:block">${groups.map(([gl, items]) => `<div class="admin-tool-group"><div class="admin-tool-group-title">${gl}</div><div class="admin-tool-grid">${items.map(tile).join('')}</div></div>`).join('')}</div>
+                            </div>`;
+                        })()}
                         <div class="flex-grow relative">${this.renderAdminTabContent()}</div>
                     </div>
                 `;
@@ -1855,6 +1888,7 @@
 
                 if (window.state.adminTab === 'pdf-test') return this.renderPdfTestTab();
                 if (window.state.adminTab === 'ads') return this.renderAdsTab();
+                if (window.state.adminTab === 'ppt') return this.renderPptTab();
 
                 if (window.state.adminTab === 'settings') {
                     const displayConfig = getStoredFirebaseConfig() || {};
@@ -1904,7 +1938,7 @@
                                 <div class="mb-4 p-4 rounded-2xl border border-emerald-700/40 bg-emerald-950/20">
                                     <label class="block text-xs font-bold text-emerald-300 mb-2"><i class="fa-solid fa-key mr-1"></i> Groq API Key बदलें (expire होने पर)</label>
                                     <input type="password" id="srv-groq-key" autocomplete="off" placeholder="नई gsk_... key" class="w-full mb-2 px-4 py-2.5 bg-slate-950 border border-emerald-900/50 rounded-xl text-sm text-emerald-100 font-mono outline-none">
-                                    <input type="password" id="srv-admin-secret" autocomplete="off" value="${safeSessionGet('glo_admin_secret','')}" placeholder="Worker ADMIN_SECRET" class="w-full mb-3 px-4 py-2.5 bg-slate-950 border border-emerald-900/50 rounded-xl text-sm text-emerald-100 font-mono outline-none">
+                                    <input type="password" id="srv-admin-secret" autocomplete="off" value="${getAdminSecret()}" placeholder="Worker ADMIN_SECRET" class="w-full mb-3 px-4 py-2.5 bg-slate-950 border border-emerald-900/50 rounded-xl text-sm text-emerald-100 font-mono outline-none">
                                     <div class="flex flex-wrap gap-2">
                                         <button type="button" onclick="window.app.updateServerGroqKey()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black">Key Save करें</button>
                                         <button type="button" onclick="window.app.testServerAI()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-slate-600">AI Test करें</button>
@@ -3268,13 +3302,13 @@
                         <p class="text-[10px] text-slate-500 mt-1 font-devanagari">worker.js Cloudflare पर deploy करें और ANTHROPIC_API_KEY वहाँ Secret में रखें। URL यहाँ save करने पर सभी students के लिए भी चालू हो जाता है।</p>
                     </div>
                     ${proxy ? '' : `
-                    <details class="text-xs"><summary class="cursor-pointer text-slate-400 font-devanagari">या सीधे Groq / Gemini key इस्तेमाल करें (सिर्फ admin tools)</summary>
+                    <details class="text-xs"><summary class="cursor-pointer ${ok ? 'text-emerald-400' : 'text-slate-400'} font-devanagari">${ok ? '✓ Key इस device पर saved है — बदलने के लिए यहाँ दबाएँ' : 'या सीधे Groq / Gemini key इस्तेमाल करें (सिर्फ admin tools)'}</summary>
                     <div class="grid grid-cols-1 sm:grid-cols-[150px_1fr_auto] gap-2 mt-2">
                         <select id="qa-provider" class="px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white">${opt('claude', 'Claude Haiku (Fast, paid)')}${opt('gemini', 'Gemini (Free, best for 150 MCQ)')}${opt('groq', 'Groq (Free)')}${opt('cerebras', 'Cerebras (Free)')}${opt('openrouter', 'OpenRouter (Free models)')}${opt('openai', 'OpenAI')}</select>
                         <input id="qa-key" type="password" autocomplete="off" placeholder="API key paste करें (sk-ant-… / AIza… / gsk_… / csk-… / sk-or-… / sk-…)" class="px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white">
                         <button onclick="window.app.quickSaveAI()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm px-5 py-2.5 rounded-xl">Save</button>
                     </div>
-                    <label class="flex items-start gap-2 text-[11px] text-slate-400 font-devanagari mt-2"><input type="checkbox" id="qa-remember" ${kept ? 'checked' : ''} class="mt-0.5 accent-amber-500"> इस device पर key याद रखें (सिर्फ अपने निजी phone/PC पर)</label></details>`}
+                    <div class="flex items-center justify-between gap-2 mt-2"><p class="text-[11px] text-slate-500 font-devanagari">Key इस device पर सुरक्षित रहती है — दोबारा paste नहीं करनी पड़ेगी। (सिर्फ अपने निजी phone/PC पर use करें)</p>${kept ? '<button onclick="window.app.removeAIKey()" class="shrink-0 text-[11px] font-bold text-rose-400 border border-rose-800/60 rounded-lg px-3 py-1.5">Key हटाएँ</button>' : ''}</div></details>`}
                     <div id="ai-health-result" class="text-xs"></div>
                 </div>`;
             },
@@ -3290,18 +3324,23 @@
                 if (url) setTimeout(() => this.testAIConnection(), 60);
             },
 
+            removeAIKey() {
+                const p = document.getElementById('qa-provider')?.value || getAIProvider();
+                setAIKey(p, '');
+                this.showToast(p.toUpperCase() + ' key हटा दी गई।');
+                this.render();
+            },
+
             quickSaveAI() {
                 const provider = document.getElementById('qa-provider')?.value || 'groq';
                 const key = (document.getElementById('qa-key')?.value || '').trim();
-                const remember = !!document.getElementById('qa-remember')?.checked;
                 try { localStorage.setItem(AI_PROVIDER_KEY, provider); } catch (_) {}
                 if (key) {
                     const okFmt = provider === 'claude' ? /^sk-ant-/i.test(key) : provider === 'groq' ? /^gsk_/i.test(key) : provider === 'openai' ? /^sk-/i.test(key) : provider === 'cerebras' ? /^csk-/i.test(key) || key.length >= 20 : provider === 'openrouter' ? /^sk-or-/i.test(key) : key.length >= 10;
                     if (!okFmt) return this.showToast('Key का format सही नहीं लग रहा। Provider और key दोबारा जाँचें।', 'error');
                     setAIKey(provider, key);
                 }
-                try { if (remember && (key || getAIKey(provider))) localStorage.setItem('glo_aikeep_' + provider, key || getAIKey(provider)); else localStorage.removeItem('glo_aikeep_' + provider); } catch (_) {}
-                this.showToast('AI settings save हो गईं');
+                this.showToast('AI settings save हो गईं (इस device पर याद रहेंगी)');
                 this.render();
                 setTimeout(() => this.testAIConnection(), 60);
             },
@@ -3902,7 +3941,7 @@ Text:
                     const r = await fetch(proxy, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task: 'set_key', secret, key }) });
                     const d = await r.json().catch(() => ({}));
                     if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
-                    safeSessionSet('glo_admin_secret', secret); document.getElementById('srv-groq-key').value = '';
+                    safeSessionSet('glo_admin_secret', secret); try { localStorage.setItem('glo_admin_secret', secret); } catch (_) {} document.getElementById('srv-groq-key').value = '';
                     this.showToast('नई Groq key चालू हो गई।');
                 } catch (e) { this.showToast('Key save नहीं हुई: ' + e.message, 'error'); }
             },
@@ -4423,6 +4462,7 @@ Answer Key
 
             // ======================= GLO PATCH v2 : END =======================
 
+            toggleAdminTools() { document.getElementById('admin-tools-panel')?.classList.toggle('hidden'); },
             setAdminTab(tab) { window.state.adminTab = tab; window.state.editingDraftId = null; window.state.adminViewingStudent = null; this.render(); }
         };
     </script>
@@ -4832,6 +4872,1089 @@ Answer Key
     } catch (_) {}
   };
 })();
+
+/* ===================== SLIDES STUDIO (NotebookLM-style PPT) ===================== */
+(function () {
+  const app = window.app; if (!app) return;
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const $ = id => document.getElementById(id);
+  const S1 = v => String(v ?? '').trim();
+  const arr = v => Array.isArray(v) ? v : [];
+  const lines = v => String(v || '').split('\n').map(x => x.trim()).filter(Boolean);
+  const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+  const LS = 'glo_ppt_decks_v1';
+  const FONT = "'Noto Sans Devanagari','Inter',system-ui,sans-serif";
+
+  const THEMES = {
+    neon:    { name: 'Neon Night', bg: '#0b1020', bg2: '#1a2350', ink: '#f4f6ff', mute: '#9aa6d0', a: '#22d3ee', b: '#f472b6', c: '#fbbf24', card: 'rgba(255,255,255,.08)', line: 'rgba(255,255,255,.18)', cx: '1B2347' },
+    sunrise: { name: 'Sunrise', bg: '#fff4d6', bg2: '#ffd98a', ink: '#1b1f4b', mute: '#5b5f8a', a: '#e8590c', b: '#1c3faa', c: '#0b7a4b', card: '#ffffff', line: 'rgba(27,31,75,.2)', cx: 'FFFFFF' },
+    board:   { name: 'Chalkboard', bg: '#0d241e', bg2: '#1b4a3d', ink: '#f3f7ef', mute: '#a9c4b8', a: '#ffd447', b: '#ff8fa3', c: '#8be0c0', card: 'rgba(255,255,255,.09)', line: 'rgba(255,255,255,.24)', cx: '1C453A' },
+    paper:   { name: 'Paper Pop', bg: '#ffffff', bg2: '#e7eaff', ink: '#101223', mute: '#555a7a', a: '#3b4cff', b: '#ff3d71', c: '#00a878', card: '#f3f4ff', line: 'rgba(16,18,35,.16)', cx: 'F1F3FF' },
+    royal:   { name: 'Royal', bg: '#1d0f3d', bg2: '#3b1c78', ink: '#fff7e6', mute: '#c9b8f0', a: '#ffc53d', b: '#ff7ab6', c: '#69e0d0', card: 'rgba(255,255,255,.09)', line: 'rgba(255,255,255,.22)', cx: '3A2070' }
+  };
+  const themeVars = t => { const h = THEMES[t] || THEMES.neon; return `--bg:${h.bg};--bg2:${h.bg2};--ink:${h.ink};--mute:${h.mute};--a:${h.a};--b:${h.b};--c:${h.c};--card:${h.card};--line:${h.line}`; };
+  const TYPES = ['cover', 'points', 'flow', 'cycle', 'mindmap', 'compare', 'timeline', 'table', 'trick', 'fact', 'quiz', 'summary'];
+  const TYPE_LABEL = { cover: 'Cover', points: 'Key Points', flow: 'Flowchart', cycle: 'Cycle Diagram', mindmap: 'Mind Map', compare: 'Compare (A vs B)', timeline: 'Timeline', table: 'Table', trick: 'Yaad Rakhne ki Trick', fact: 'Big Fact', quiz: 'Quiz', summary: 'Summary' };
+
+  const CSS = `
+.pp-slide{width:1280px;height:720px;position:relative;overflow:hidden;box-sizing:border-box;padding:46px 64px 56px;color:var(--ink);background:radial-gradient(1100px 650px at 92% -8%,var(--bg2),var(--bg));font-family:${FONT};line-height:1.25;text-align:left}
+.pp-slide *{box-sizing:border-box}
+.pp-head{display:flex;align-items:center;gap:22px;margin-bottom:26px}
+.pp-chip{width:78px;height:78px;border-radius:24px;background:var(--a);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:42px;flex:none}
+.pp-h2{margin:0;font-size:50px;font-weight:900;letter-spacing:-.5px;line-height:1.12}
+.pp-foot{position:absolute;left:64px;right:64px;bottom:20px;display:flex;justify-content:space-between;font-size:17px;color:var(--mute);font-weight:600}
+.pp-srcline{position:absolute;left:64px;right:64px;bottom:46px;font-size:17px;color:var(--mute);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-prog{position:absolute;left:0;bottom:0;height:8px;background:linear-gradient(90deg,var(--a),var(--b))}
+.pp-cover{height:100%;display:flex;flex-direction:column;justify-content:center;gap:22px;position:relative;z-index:1;padding-right:240px}
+.pp-cover:before{content:"";position:absolute;right:-300px;top:-90px;width:620px;height:620px;border-radius:50%;background:var(--a);opacity:.22;z-index:-1}
+.pp-cover:after{content:"";position:absolute;right:-160px;bottom:-190px;width:420px;height:420px;border-radius:50%;background:var(--b);opacity:.25;z-index:-1}
+.pp-big-emoji{font-size:110px;line-height:1}
+.pp-h1{margin:0;font-size:76px;font-weight:900;line-height:1.1;letter-spacing:-1.5px}
+.pp-sub{font-size:34px;color:var(--mute);font-weight:600;margin:0}
+.pp-hook{align-self:flex-start;background:var(--c);color:var(--bg);font-size:30px;font-weight:900;padding:12px 26px;border-radius:18px}
+.pp-list{display:flex;flex-direction:column;gap:16px}
+.pp-li{display:flex;gap:20px;align-items:center;background:var(--card);border:2px solid var(--line);border-radius:22px;padding:16px 26px;font-weight:700}
+.pp-li i{font-style:normal;flex:none;width:44px;height:44px;border-radius:50%;color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900}
+.pp-cta{margin-top:20px;background:linear-gradient(90deg,var(--a),var(--b));color:var(--bg);font-size:30px;font-weight:900;padding:14px 26px;border-radius:18px;text-align:center}
+.pp-flow{display:flex;flex-direction:column;gap:12px;margin-top:26px}
+.pp-flowrow{display:flex;align-items:stretch}
+.pp-flowrow.rev{flex-direction:row-reverse}
+.pp-step{flex:0 0 calc((100% - (var(--per) - 1) * 64px) / var(--per));background:var(--card);border:3px solid var(--a);border-radius:24px;padding:26px 14px 16px;text-align:center;position:relative;display:flex;flex-direction:column;justify-content:center;min-height:150px}
+.pp-num{position:absolute;top:-22px;left:50%;margin-left:-22px;width:44px;height:44px;border-radius:50%;background:var(--b);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;font-style:normal}
+.pp-st{font-size:29px;font-weight:900}
+.pp-sd{font-size:21px;color:var(--mute);margin-top:6px;font-weight:600}
+.pp-arr{flex:0 0 64px;display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--c);font-weight:900}
+.pp-downwrap{display:flex;flex-direction:row-reverse}
+.pp-down{flex:0 0 calc((100% - (var(--per) - 1) * 64px) / var(--per));text-align:center;font-size:38px;color:var(--c);font-weight:900;line-height:1}
+.pp-canvas{position:relative;width:1152px;height:500px}
+.pp-canvas svg{position:absolute;left:0;top:0;width:1152px;height:500px}
+.pp-node{position:absolute;transform:translate(-50%,-50%);background:linear-gradient(var(--card),var(--card)),var(--bg);border:3px solid var(--a);border-radius:22px;padding:12px 16px;text-align:center}
+.pp-node b{display:block;font-size:26px;font-weight:900}
+.pp-node span{display:block;font-size:20px;color:var(--mute);font-weight:600;margin-top:3px}
+.pp-core{position:absolute;transform:translate(-50%,-50%);background:var(--b);color:var(--bg);border-radius:999px;padding:22px 34px;font-size:32px;font-weight:900;text-align:center;max-width:360px}
+.pp-cmp{display:grid;grid-template-columns:1fr 1fr;gap:34px;position:relative;margin-top:14px}
+.pp-cmp>.pp-col{background:var(--card);border:3px solid var(--a);border-radius:26px;padding:20px 26px;min-height:380px}
+.pp-cmp>.pp-col+.pp-col{border-color:var(--b)}
+.pp-h3{margin:0 0 16px;font-size:40px;font-weight:900;color:var(--a)}
+.pp-cmp>.pp-col+.pp-col .pp-h3{color:var(--b)}
+.pp-cmp li{font-size:30px;font-weight:700;margin:0 0 10px;list-style:none;padding-left:34px;position:relative}
+.pp-cmp li:before{content:"●";position:absolute;left:0;color:var(--c)}
+.pp-cmp ul{margin:0;padding:0}
+.pp-vs{position:absolute;left:50%;top:50%;margin:-34px 0 0 -34px;width:68px;height:68px;border-radius:50%;background:var(--c);color:var(--bg);font-weight:900;font-size:28px;display:flex;align-items:center;justify-content:center;border:4px solid var(--bg)}
+.pp-tl-line{position:absolute;left:0;right:0;top:250px;height:6px;background:var(--line);border-radius:3px}
+.pp-dot{position:absolute;top:238px;width:30px;height:30px;margin-left:-15px;border-radius:50%;background:var(--a);border:5px solid var(--bg)}
+.pp-tl-card{position:absolute;width:330px;margin-left:-165px;background:var(--card);border:2px solid var(--line);border-radius:18px;padding:12px 16px;text-align:center}
+.pp-tl-card b{display:block;font-size:34px;font-weight:900;color:var(--c)}
+.pp-tl-card span{font-size:27px;font-weight:700}
+.pp-tbl{width:100%;border-collapse:separate;border-spacing:0;margin-top:10px;font-size:30px;border-radius:20px;overflow:hidden;border:2px solid var(--line)}
+.pp-tbl th{background:var(--a);color:var(--bg);padding:18px 24px;text-align:left;font-weight:900;font-size:31px}
+.pp-tbl td{padding:var(--tp,16px) 24px;background:var(--card);font-weight:700;border-top:1px solid var(--line)}
+.pp-mn{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 18px}
+.pp-mn b{min-width:92px;height:104px;padding:0 14px;border-radius:22px;background:var(--a);color:var(--bg);font-size:68px;font-weight:900;display:flex;align-items:center;justify-content:center}
+.pp-mn b:nth-child(3n+2){background:var(--b)}.pp-mn b:nth-child(3n){background:var(--c)}
+.pp-brk{display:grid;grid-template-columns:1fr 1fr;gap:14px 22px}
+.pp-brk div{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:14px 20px;font-size:30px;font-weight:700}
+.pp-brk div em{font-style:normal;color:var(--a);font-weight:900;margin-right:12px;font-size:36px}
+.pp-tip{margin-top:20px;background:var(--c);color:var(--bg);font-size:29px;font-weight:800;padding:16px 24px;border-radius:18px}
+.pp-fact{height:520px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:10px}
+.pp-fact .n{font-size:150px;font-weight:900;line-height:1.05;color:var(--a);letter-spacing:-3px}
+.pp-fact .c{font-size:38px;font-weight:800;max-width:980px}
+.pp-fact ul{margin:10px 0 0;padding:0;list-style:none;font-size:27px;font-weight:700;color:var(--mute)}
+.pp-q{background:var(--card);border:2px solid var(--line);border-radius:22px;padding:18px 26px;margin-bottom:16px}
+.pp-h4{margin:0 0 10px;font-size:31px;font-weight:900}
+.pp-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;font-size:26px;font-weight:700}
+.pp-opts span{padding:5px 14px;border-radius:10px;border:2px solid transparent}
+.pp-opts span.ok{background:var(--c);color:var(--bg);font-weight:900}
+.pp-why{font-size:23px;color:var(--mute);margin-top:6px;font-weight:600}
+`;
+
+  /* ---------- normalizer ---------- */
+  const stepObj = x => typeof x === 'string' ? { t: S1(x.split('|')[0]), d: S1(x.split('|').slice(1).join('|')) } : { t: S1(x?.t ?? x?.title ?? x?.step ?? x?.name), d: S1(x?.d ?? x?.desc ?? x?.detail) };
+  const strList = (v, max) => arr(v).map(b => typeof b === 'string' ? S1(b) : S1(b?.t ?? b?.text ?? '')).filter(Boolean).slice(0, max);
+  function norm(x) {
+    x = x && typeof x === 'object' ? x : {};
+    const type = TYPES.includes(x.type) ? x.type : 'points';
+    const s = { type, title: S1(x.title) || 'Slide', emoji: Array.from(S1(x.emoji)).slice(0, 2).join('') || '✨', notes: S1(x.notes) };
+    if (x.fail) s.fail = 1;
+    if (type === 'cover') { s.subtitle = S1(x.subtitle); s.hook = S1(x.hook); }
+    if (type === 'points' || type === 'summary') { s.bullets = strList(x.bullets, 7); if (!s.bullets.length) s.bullets = ['—']; if (type === 'summary') s.cta = S1(x.cta); }
+    if (type === 'flow' || type === 'cycle') { s.steps = arr(x.steps).map(stepObj).filter(a => a.t).slice(0, type === 'flow' ? 8 : 6); while (s.steps.length < 2) s.steps.push({ t: 'Step ' + (s.steps.length + 1), d: '' }); if (type === 'cycle') s.center = S1(x.center); }
+    if (type === 'mindmap') { s.center = S1(x.center) || s.title; s.branches = arr(x.branches).map(b => ({ t: S1(b?.t ?? b?.title), items: strList(b?.items, 3) })).filter(b => b.t).slice(0, 6); if (!s.branches.length) s.branches = [{ t: 'Branch', items: [] }]; }
+    if (type === 'compare') { const side = o => ({ t: S1(o?.t ?? o?.title), items: strList(o?.items, 5) }); s.left = side(x.left); s.right = side(x.right); }
+    if (type === 'timeline') { s.events = arr(x.events).map(e => ({ w: S1(e?.w ?? e?.when ?? e?.year), t: S1(e?.t ?? e?.what ?? e?.text) })).filter(e => e.t || e.w).slice(0, 6); if (!s.events.length) s.events = [{ w: '—', t: '—' }]; }
+    if (type === 'table') { s.headers = strList(x.headers, 4); s.rows = arr(x.rows).map(r => arr(r).map(S1).slice(0, 4)).slice(0, 6); if (!s.headers.length) s.headers = (s.rows.shift() || ['A', 'B']); if (!s.rows.length) s.rows = [s.headers.map(() => '—')]; }
+    if (type === 'trick') { s.mnemonic = S1(x.mnemonic) || 'TRICK'; s.breakdown = arr(x.breakdown).map(b => ({ k: S1(b?.k ?? b?.letter), v: S1(b?.v ?? b?.meaning) })).filter(b => b.k || b.v).slice(0, 8); s.tip = S1(x.tip); }
+    if (type === 'fact') { s.big = S1(x.big) || '!'; s.caption = S1(x.caption); s.bullets = strList(x.bullets, 3); }
+    if (type === 'quiz') { s.qs = arr(x.qs).map(q => { const o = arr(q?.o).map(S1).slice(0, 4); while (o.length < 4) o.push('—'); return { q: S1(q?.q), o, a: clamp(parseInt(q?.a) || 0, 0, 3), why: S1(q?.why) }; }).filter(q => q.q).slice(0, 3); if (!s.qs.length) s.qs = [{ q: 'Question?', o: ['A', 'B', 'C', 'D'], a: 0, why: '' }]; }
+    return s;
+  }
+
+  /* ---------- slide renderers (pure HTML/CSS/SVG - works offline & exports cleanly) ---------- */
+  const head = s => `<div class="pp-head"><div class="pp-chip">${esc(s.emoji)}</div><div class="pp-h2">${esc(s.title)}</div></div>`;
+  const pal = ['var(--a)', 'var(--b)', 'var(--c)'];
+  const R = {
+    cover: s => `<div class="pp-cover"><div class="pp-big-emoji">${esc(s.emoji)}</div><div class="pp-h1">${esc(s.title)}</div>${s.subtitle ? `<p class="pp-sub">${esc(s.subtitle)}</p>` : ''}${s.hook ? `<div class="pp-hook">${esc(s.hook)}</div>` : ''}</div>`,
+    points: s => { const n = s.bullets.length, len = s.bullets.join('').length, fs = Math.min(n >= 7 ? 26 : n === 6 ? 29 : n === 5 ? 34 : n === 4 ? 40 : 44, len > 330 ? 28 : 99); return head(s) + `<div class="pp-list">${s.bullets.map((b, i) => `<div class="pp-li" style="font-size:${fs}px"><i style="background:${pal[i % 3]}">${i + 1}</i><div>${esc(b)}</div></div>`).join('')}</div>`; },
+    summary: s => { const n = s.bullets.length, fs = n >= 6 ? 27 : n === 5 ? 32 : n === 4 ? 36 : 40; return head(s) + `<div class="pp-list">${s.bullets.map((b, i) => `<div class="pp-li" style="font-size:${fs}px"><i style="background:${pal[i % 3]}">✓</i><div>${esc(b)}</div></div>`).join('')}</div>${s.cta ? `<div class="pp-cta">${esc(s.cta)}</div>` : ''}`; },
+    flow: s => {
+      const st = s.steps, n = st.length, per = n <= 4 ? n : Math.ceil(n / 2), rows = [st.slice(0, per), st.slice(per)].filter(r => r.length); let k = 0;
+      const h = rows.map((r, ri) => `<div class="pp-flowrow${ri % 2 ? ' rev' : ''}">${r.map((x, i) => { k++; return `<div class="pp-step"><i class="pp-num">${k}</i><div class="pp-st">${esc(x.t)}</div>${x.d ? `<div class="pp-sd">${esc(x.d)}</div>` : ''}</div>${i < r.length - 1 ? `<div class="pp-arr">${ri % 2 ? '⬅' : '➜'}</div>` : ''}`; }).join('')}</div>${ri < rows.length - 1 ? `<div class="pp-downwrap"><div class="pp-down">⬇</div></div>` : ''}`).join('');
+      return head(s) + `<div class="pp-flow" style="--per:${per}">${h}</div>`;
+    },
+    cycle: s => {
+      const st = s.steps, n = st.length, cx = 576, cy = 250, rx = 400, ry = 190, ang = i => (-90 + 360 * i / n) * Math.PI / 180, off = 360 / n * .3 * Math.PI / 180;
+      const pt = a => [cx + rx * Math.cos(a), cy + ry * Math.sin(a)];
+      const arcs = st.map((_, i) => { const a1 = ang(i) + off, a2 = ang(i + 1) - off + (i === n - 1 ? 2 * Math.PI : 0), p1 = pt(a1), p2 = pt(a2); return `<path d="M${p1[0].toFixed(1)} ${p1[1].toFixed(1)} A${rx} ${ry} 0 0 1 ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}" fill="none" stroke="var(--c)" stroke-width="5" marker-end="url(#ppah)"/>`; }).join('');
+      const nodes = st.map((x, i) => { const p = pt(ang(i)); return `<div class="pp-node" style="left:${p[0].toFixed(0)}px;top:${p[1].toFixed(0)}px;width:270px"><b>${i + 1}. ${esc(x.t)}</b>${x.d ? `<span>${esc(x.d)}</span>` : ''}</div>`; }).join('');
+      return head(s) + `<div class="pp-canvas"><svg viewBox="0 0 1152 500"><defs><marker id="ppah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0 0L9 4.5L0 9z" fill="var(--c)"/></marker></defs>${arcs}</svg>${s.center ? `<div class="pp-core" style="left:${cx}px;top:${cy}px">${esc(s.center)}</div>` : ''}${nodes}</div>`;
+    },
+    mindmap: s => {
+      const b = s.branches, n = b.length, cx = 576, cy = 250, rx = 420, ry = 185, start = n % 2 ? -90 : -180 + 180 / n, pos = i => { const a = (start + 360 * i / n) * Math.PI / 180; return [cx + rx * Math.cos(a), cy + ry * Math.sin(a)]; };
+      const lines = b.map((_, i) => { const p = pos(i); return `<line x1="${cx}" y1="${cy}" x2="${p[0].toFixed(0)}" y2="${p[1].toFixed(0)}" stroke="${pal[i % 3]}" stroke-width="5" stroke-linecap="round"/>`; }).join('');
+      const nodes = b.map((x, i) => { const p = pos(i); return `<div class="pp-node" style="left:${p[0].toFixed(0)}px;top:${p[1].toFixed(0)}px;width:300px;border-color:${pal[i % 3]}"><b>${esc(x.t)}</b>${x.items.map(it => `<span>• ${esc(it)}</span>`).join('')}</div>`; }).join('');
+      return head(s) + `<div class="pp-canvas"><svg viewBox="0 0 1152 500">${lines}</svg><div class="pp-core" style="left:${cx}px;top:${cy}px">${esc(s.center)}</div>${nodes}</div>`;
+    },
+    compare: s => `${head(s)}<div class="pp-cmp"><div class="pp-col"><div class="pp-h3">${esc(s.left.t)}</div><ul>${s.left.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul></div><div class="pp-col"><div class="pp-h3">${esc(s.right.t)}</div><ul>${s.right.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul></div><div class="pp-vs">VS</div></div>`,
+    timeline: s => {
+      const e = s.events, n = e.length;
+      return head(s) + `<div class="pp-canvas"><div class="pp-tl-line"></div>${e.map((x, i) => { const l = ((i + .5) / n * 1152).toFixed(0), up = i % 2 === 0; return `<div class="pp-dot" style="left:${l}px;background:${pal[i % 3]}"></div><div class="pp-tl-card" style="left:${l}px;${up ? 'top:90px' : 'top:300px'}"><b>${esc(x.w)}</b><span>${esc(x.t)}</span></div>`; }).join('')}</div>`;
+    },
+    table: s => head(s) + `<table class="pp-tbl" style="--tp:${s.rows.length <= 3 ? 26 : s.rows.length === 4 ? 21 : s.rows.length === 5 ? 15 : 11}px"><thead><tr>${s.headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${s.rows.map(r => `<tr>${s.headers.map((_, i) => `<td>${esc(r[i] || '')}</td>`).join('')}</tr>`).join('')}</tbody></table>`,
+    trick: s => head(s) + `<div class="pp-mn">${Array.from(s.mnemonic.replace(/\s+/g, '')).length <= 9 ? Array.from(s.mnemonic.replace(/\s+/g, '')).map(ch => `<b>${esc(ch)}</b>`).join('') : `<b style="font-size:44px;height:auto;padding:18px 24px">${esc(s.mnemonic)}</b>`}</div><div class="pp-brk">${s.breakdown.map(b => `<div><em>${esc(b.k)}</em>${esc(b.v)}</div>`).join('')}</div>${s.tip ? `<div class="pp-tip">💡 ${esc(s.tip)}</div>` : ''}`,
+    fact: s => head(s) + `<div class="pp-fact"><div class="n">${esc(s.big)}</div><div class="c">${esc(s.caption)}</div>${s.bullets.length ? `<ul>${s.bullets.map(b => `<li>• ${esc(b)}</li>`).join('')}</ul>` : ''}</div>`,
+    quiz: s => head(s) + s.qs.map((q, qi) => `<div class="pp-q"><div class="pp-h4">Q${qi + 1}. ${esc(q.q)}</div><div class="pp-opts">${q.o.map((o, i) => `<span class="${i === q.a ? 'ok' : ''}">${'ABCD'[i]}. ${esc(o)}${i === q.a ? ' ✓' : ''}</span>`).join('')}</div>${q.why ? `<div class="pp-why">💡 ${esc(q.why)}</div>` : ''}</div>`).join('')
+  };
+  function slideHTML(s, i, n, theme, title, srcs) {
+    const body = (R[s.type] || R.points)(s);
+    return `<div class="pp-slide" style="${themeVars(theme)}">${body}${s.type === 'summary' && srcs && srcs.length ? `<div class="pp-srcline">📚 स्रोत: ${esc(srcs.slice(0, 3).map(x => String(x.t || '').slice(0, 26)).join(' • '))}</div>` : ''}<div class="pp-foot"><span>${esc(String(title || '').slice(0, 52))}</span><span>${i + 1} / ${n}</span></div><div class="pp-prog" style="width:${((i + 1) / n * 100).toFixed(1)}%"></div></div>`;
+  }
+
+  /* ---------- state & storage ---------- */
+  const loadDecks = () => { try { return JSON.parse(localStorage.getItem(LS) || '[]'); } catch (_) { return []; } };
+  const S = { form: { topic: '', notes: '', rtext: '', links: '', exam: '', lang: 'hi', count: 10, theme: 'neon', style: 'standard', research: true, recheck: true }, sources: [], files: [], qa: [], cands: null, sel: new Set(), ctopic: '', warns: [], rkey: '', deck: null, id: null, cur: 0, busy: false, status: '', pct: 0, decks: loadDecks(), hooks: [], ins: '' };
+  const toast = (m, t) => app.showToast(m, t || 'success');
+  const cur = () => S.deck && S.deck.slides[S.cur];
+  const saveDecks = () => { let n = 25; while (n >= 1) { try { localStorage.setItem(LS, JSON.stringify(S.decks.slice(0, n))); return; } catch (_) { n = Math.floor(n / 2); if (!n) break; } } toast('Browser storage full — purane decks delete karein।', 'error'); };
+  function persist() {
+    if (!S.deck) return; if (!S.id) S.id = 'd' + Date.now();
+    const rec = { id: S.id, title: S.deck.title, topic: S.deck.topic || '', n: S.deck.slides.length, t: Date.now(), deck: S.deck };
+    const i = S.decks.findIndex(d => d.id === S.id); if (i >= 0) S.decks[i] = rec; else S.decks.unshift(rec); saveDecks();
+  }
+  let saveT; const autosave = () => { clearTimeout(saveT); saveT = setTimeout(persist, 600); };
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  /* ---------- Undo / Redo ---------- */
+  const HIST = { u: [], r: [] };
+  const snapJSON = () => JSON.stringify({ d: S.deck, c: S.cur });
+  function snap() { if (!S.deck) return; const j = snapJSON(); if (HIST.u[HIST.u.length - 1] !== j) { HIST.u.push(j); if (HIST.u.length > 40) HIST.u.shift(); } HIST.r = []; }
+  let bT; const burst = () => { if (!bT) snap(); clearTimeout(bT); bT = setTimeout(() => { bT = null; }, 1500); };
+  function restore(j) { const o = JSON.parse(j); S.deck = o.d; S.cur = Math.min(o.c, o.d.slides.length - 1); persist(); paintAll(); }
+  function undo() { if (!S.deck || !HIST.u.length) return toast('Undo के लिए कुछ नहीं है।', 'error'); HIST.r.push(snapJSON()); restore(HIST.u.pop()); toast('↩ Undo हो गया'); }
+  function redo() { if (!S.deck || !HIST.r.length) return toast('Redo के लिए कुछ नहीं है।', 'error'); HIST.u.push(snapJSON()); restore(HIST.r.pop()); toast('↪ Redo हो गया'); }
+  function status(m, p) { S.status = m; if (p != null) S.pct = p; const a = $('pp-status'); if (a) a.textContent = m; const b = $('pp-pbar'); if (b) b.style.width = S.pct + '%'; }
+
+  /* ---------- AI plumbing (uses the app's own provider fallback: Claude/Gemini/Groq/Cerebras/OpenRouter/OpenAI/Proxy) ---------- */
+  const SYS = 'You are a world-class Indian competitive-exam teacher and viral YouTube educator. Return ONLY valid JSON. No markdown fences, no commentary.';
+  const isRate = e => /429|rate|quota|overload|503|529|busy|exhaust|limit/i.test(String((e && e.message) || e));
+  async function ai(prompt, maxTokens) {
+    const proxy = getAIProxyUrl(), order = proxy ? ['proxy'] : app.getProviderOrder(getAIProvider());
+    if (!order.length) throw new Error('AI key नहीं मिली — Settings में Gemini / Groq key Save करें।');
+    let last;
+    for (let round = 0; round < 4; round++) {
+      let rate = false;
+      for (const pv of order) {
+        try {
+          if (pv === 'proxy') { const r = await fetch(proxy, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task: 'doubt', prompt: SYS + '\n\n' + prompt }) }); if (!r.ok) throw new Error('Proxy ' + r.status); const d = await r.json(); return d.reply || d.text || d.content || ''; }
+          return await app.callAIProvider(pv, prompt, { json: true, failFast: order.length > 1, timeout: 120000, maxTokens: maxTokens || 8000, system: SYS, temperature: 0.5 });
+        } catch (e) { last = e; if (isRate(e)) rate = true; }
+      }
+      if (!rate) break;
+      const w = 3000 * Math.pow(2, round); status('⏳ AI limit — ' + Math.round(w / 1000) + ' sec ruk kar dobara koshish…'); await wait(w);
+    }
+    throw last || new Error('AI response nahi mila');
+  }
+  function parseJSON(raw) {
+    let t = String(raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+    const a = t.indexOf('{'), b = t.lastIndexOf('}'); if (a < 0 || b <= a) throw new Error('AI ne valid JSON nahi diya');
+    t = t.slice(a, b + 1);
+    try { return JSON.parse(t); } catch (_) { return JSON.parse(t.replace(/,\s*([}\]])/g, '$1')); }
+  }
+
+  /* ---------- auto web research: Gemini Google-Search grounding, fallback Wikipedia (hi + en) ---------- */
+  async function wiki(topic, srcOut) {
+    let txt = '';
+    for (const lg of ['hi', 'en']) {
+      try {
+        const s = await (await fetch(`https://${lg}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(topic)}&srlimit=2&format=json&origin=*`)).json();
+        for (const h of (s?.query?.search || []).slice(0, 2)) {
+          const p = await (await fetch(`https://${lg}.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&exlimit=1&titles=${encodeURIComponent(h.title)}&format=json&origin=*`)).json();
+          const pg = Object.values(p?.query?.pages || {})[0]; if (pg?.extract) { txt += `\n[Wikipedia ${lg}: ${pg.title}]\n` + pg.extract.slice(0, 3200); if (srcOut) srcOut.push({ t: 'Wikipedia: ' + pg.title, u: `https://${lg}.wikipedia.org/wiki/${encodeURIComponent(String(pg.title).replace(/ /g, '_'))}` }); }
+        }
+      } catch (_) { }
+    }
+    return txt;
+  }
+  const YT = /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:[^#\s]*&)?v=|shorts\/|embed\/|live\/))([\w-]{11})/i;
+  async function gem(parts, tools) {
+    const key = getAIKey('gemini'); if (!key) throw new Error('Gemini key नहीं है (Settings में free key save करें)');
+    const body = { contents: [{ parts }], generationConfig: { temperature: 0.2, maxOutputTokens: 8192 } }; if (tools) body.tools = tools;
+    let r, d, msg = '';
+    for (const m of ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash']) {
+      for (let t = 0; t < 3; t++) {
+        r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(key)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        d = await r.json().catch(() => ({})); if (r.ok || ![429, 500, 503].includes(r.status)) break; await wait(3000 * (t + 1));
+      }
+      if (r.ok) break; msg = String(d?.error?.message || '');
+      if (!(r.status === 404 || /not found|not supported|unsupported/i.test(msg))) break;
+    }
+    if (!r.ok) throw new Error((r.status === 429 ? 'Gemini limit खत्म/busy (429) — थोड़ी देर बाद try करें' : r.status === 400 && /API key/i.test(msg) ? 'Gemini key गलत है' : 'Gemini ' + r.status + ': ' + msg.slice(0, 140)));
+    const c = d?.candidates?.[0], text = (c?.content?.parts || []).map(x => x.text || '').join('').trim();
+    if (!text) throw new Error(d?.promptFeedback?.blockReason ? 'Gemini ने block किया: ' + d.promptFeedback.blockReason : 'Gemini ने खाली जवाब दिया' + (c?.finishReason ? ' (' + c.finishReason + ')' : ''));
+    return { text, src: (c?.groundingMetadata?.groundingChunks || []).map(g => g.web).filter(Boolean).map(w => ({ t: w.title || w.uri, u: w.uri })) };
+  }
+  /* YouTube: direct video understanding, falls back to title + Google search when the video is too long / blocked */
+  async function ytTitle(u) { try { const j = await (await fetch('https://noembed.com/embed?url=' + encodeURIComponent(u))).json(); return j.title ? j.title + (j.author_name ? ' — ' + j.author_name : '') : ''; } catch (_) { return ''; } }
+  async function ytExtract(u, topic) {
+    let e1;
+    try { const r = await gem([{ file_data: { file_uri: u } }, { text: 'Watch this YouTube video completely and listen to what is said. ' + (topic ? `Focus on: ${topic}. ` : '') + NOTE_P }]); return `[YouTube video: ${u}]\n${r.text}`; } catch (e) { e1 = e; }
+    const title = await ytTitle(u);
+    if (title) { try { const r = await gem([{ text: `Find and summarize the content of the YouTube video "${title}" (${u}). ${NOTE_P}` }], [{ google_search: {} }]); return `[YouTube video: ${title} — ${u}]\n(video सीधे नहीं पढ़ा जा सका, title + web से बना सार)\n${r.text}`; } catch (_) { } }
+    throw new Error('YouTube video नहीं पढ़ पाया (' + String(e1.message || e1).slice(0, 90) + ') — video public होना चाहिए, बहुत लंबा न हो');
+  }
+  const NOTE_P = 'Write accurate, detailed exam-oriented study notes in plain-text bullets: definitions, key facts, dates, numbers, steps/processes, formulas, comparisons, examples and points commonly asked in exams. Use ONLY verified information; never invent. Max 1000 words.';
+  async function research(topic, linksText) {
+    let out = '', sources = [], msgs = []; const hasG = !!getAIKey('gemini');
+    const links = String(linksText || '').split(/\s+/).filter(u => /^https?:\/\//i.test(u)).slice(0, 5), yt = [], web = [];
+    links.forEach(u => { const m = u.match(YT); if (m) yt.push('https://www.youtube.com/watch?v=' + m[1]); else web.push(u); });
+    let topicEff = topic;
+    if (hasG) {
+      for (const u of yt) {
+        status('▶️ YouTube video samjha ja raha hai (1-2 min lag sakte hain)…');
+        try { const t = await ytExtract(u, topic); out += '\n' + t + '\n'; sources.push({ t: 'YouTube video', u }); }
+        catch (e) { msgs.push('YouTube video nahi padh paya (public video hi chalta hai): ' + e.message); }
+      }
+      if (web.length) {
+        status('🔗 Website links padhe ja rahe hain…');
+        try { const r = await gem([{ text: `Read these web pages: ${web.join(' ')}\n${NOTE_P}` }], [{ url_context: {} }]); if (r.text) { out += `\n[Websites]\n${r.text}\n`; web.forEach(u => sources.push({ t: u.replace(/^https?:\/\/(www\.)?/, '').slice(0, 40), u })); r.src.forEach(x => sources.push(x)); } }
+        catch (e) { msgs.push('Website link nahi padh paya: ' + e.message); }
+      }
+      if (topic) {
+        status('🌐 Google Search se research ho raha hai…');
+        try { const r = await gem([{ text: `Search the web (Google) and research this topic: ${topic}. ${NOTE_P}` }], [{ google_search: {} }]); if (r.text) { out += `\n[Google Search: ${topic}]\n${r.text}\n`; r.src.slice(0, 8).forEach(x => sources.push(x)); } }
+        catch (e) { msgs.push('Google search fail: ' + e.message); }
+      }
+    } else if (yt.length || web.length || topic) {
+      msgs.push('Google / YouTube / website research ke liye Settings me Gemini key (free) save karein — abhi sirf Wikipedia se research hua।');
+      for (const u of yt) { try { const j = await (await fetch('https://noembed.com/embed?url=' + encodeURIComponent(u))).json(); if (j.title) { sources.push({ t: 'YouTube: ' + j.title, u }); if (!topicEff) topicEff = j.title; } } catch (_) { } }
+    }
+    if (topicEff && out.length < 500) { status('📖 Wikipedia se data le rahe hain…'); const ws = []; const w = await wiki(topicEff, ws); if (w.trim()) { out += '\n' + w; ws.forEach(x => sources.push(x)); } }
+    const seen = new Set(); sources = sources.filter(x => x && x.u && !seen.has(x.u) && seen.add(x.u)).slice(0, 12);
+    return { text: out.slice(0, 16000), sources, msgs };
+  }
+  async function doResearch() {
+    if (S.busy) return; const f = S.form, topic = S1(f.topic), links = S1(f.links);
+    if (!topic && !links) return toast('Topic लिखें या YouTube / website link डालें।', 'error');
+    S.busy = true; S.pct = 5; S.status = '🔎 Research शुरू…'; app.render();
+    try {
+      const r = await research(topic, links); r.msgs.forEach(m => toast(m, 'error'));
+      if (r.text.trim().length < 80) throw new Error('कुछ खास नहीं मिला — Topic/link बदलकर देखें।');
+      f.rtext = r.text; S.sources = r.sources; S.rkey = topic + '|' + links;
+      status(`✅ Research मिल गया (${r.text.length} अक्षर, ${r.sources.length} sources) — नीचे "Research Result" में देखें/edit करें, फिर "Slides बनाओ"।`, 100);
+      setTimeout(() => { const e = $('pp-research'); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120);
+    } catch (e) { toast('Research error: ' + (e.message || e), 'error'); status('❌ ' + (e.message || e), 0); }
+    finally { S.busy = false; app.render(); }
+  }
+
+  /* ---------- file sources (PDF / TXT / MD / CSV) ---------- */
+  async function readFile(file) {
+    const n = file.name.toLowerCase();
+    if (n.endsWith('.pdf') || file.type === 'application/pdf') {
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const doc = await window.pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; let t = '';
+      for (let i = 1; i <= Math.min(doc.numPages, 80); i++) { const c = await (await doc.getPage(i)).getTextContent(); t += c.items.map(x => x.str).join(' ') + '\n'; if (t.length > 40000) break; }
+      return t;
+    }
+    return await file.text();
+  }
+  async function addFiles(el) {
+    const fl = Array.from(el.files || []); if (!fl.length) return; let ok = 0;
+    for (const f of fl) {
+      try { toast('📎 ' + f.name + ' padh raha hai…'); const t = S1(await readFile(f)).slice(0, 40000); if (t.length < 20) throw new Error('text nahi mila (scanned PDF?)'); S.files.push({ name: f.name, text: t }); ok++; }
+      catch (e) { toast(f.name + ': ' + (e.message || e), 'error'); }
+    }
+    if (ok) { toast(`✅ ${ok} file jod di gayi`); app.render(); }
+  }
+  /* ---------- NotebookLM-style: ask your sources ---------- */
+  const srcCtx = () => [S.deck && S.deck.ctx, S.form.rtext, S.form.notes, ...S.files.map(x => x.text)].filter(Boolean).join('\n\n').slice(0, 14000);
+  async function askSrc() {
+    const el = $('pp-q'), q = S1(el && el.value); if (!q) return toast('पहले सवाल लिखें।', 'error');
+    const box = $('pp-qa'); if (box) box.insertAdjacentHTML('beforeend', '<div class="text-[11px] text-slate-400">⏳ सोच रहा है…</div>');
+    try {
+      const ctx = srcCtx(), d = parseJSON(await ai(`${LANG[(S.deck && S.deck.lang) || S.form.lang] || LANG.hi}\nQuestion about the topic "${(S.deck && S.deck.title) || S.form.topic}": ${q}\n${ctx ? 'Answer ONLY from the SOURCES below; if the sources do not cover it say so briefly.' : 'Answer accurately; if unsure say so.'}\nReturn ONLY {"answer":"clear answer in 3-6 short lines","slide":<one slide object following the schema that teaches this answer>}.\n${SCHEMA}${ctx ? '\n\nSOURCES:\n' + ctx : ''}`, 3000));
+      S.qa.push({ q, a: S1(d.answer), slide: d.slide ? norm(d.slide) : null }); if (el) el.value = '';
+    } catch (e) { toast('Jawab nahi mila: ' + (e.message || e), 'error'); }
+    paintQA();
+  }
+  function paintQA() { const b = $('pp-qa'); if (b) b.innerHTML = qaHTML(); }
+  const qaHTML = () => S.qa.map((x, i) => `<div class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs"><div class="font-black text-cyan-300">Q: ${esc(x.q)}</div><div class="text-slate-200 mt-1 whitespace-pre-wrap">${esc(x.a)}</div>${x.slide ? `<button type="button" onclick="window.app.pp.qaToSlide(${i})" class="mt-2 px-3 py-1.5 rounded-lg bg-fuchsia-600 text-white font-black" style="min-height:0">➕ इसकी slide जोड़ो</button>` : ''}</div>`).join('');
+  function qaToSlide(i) { const x = S.qa[i]; if (!x || !x.slide || !S.deck) return; snap(); S.deck.slides.splice(S.cur + 1, 0, JSON.parse(JSON.stringify(x.slide))); S.cur++; persist(); paintAll(); toast('Slide जुड़ गई ✔'); }
+  const aiScripts = () => aiTask('🎙 Speaker notes ban rahe hain…', async () => {
+    snap(); const D = S.deck, B = 8; let n = 0;
+    for (let a = 0; a < D.slides.length; a += B) {
+      status(`🎙 Speaker notes… ${Math.min(a + B, D.slides.length)}/${D.slides.length}`);
+      const part = D.slides.slice(a, a + B).map((x, k) => ({ n: k + 1, title: x.title, type: x.type, text: JSON.stringify(x).slice(0, 700) }));
+      try { const r = parseJSON(await ai(`${LANG[D.lang] || LANG.hi}\nWrite a short natural teacher speaking script (2-3 sentences) for each slide below. Return ONLY {"notes":[{"n":1,"t":"script"}]}.\n${JSON.stringify(part)}`, 4000)); arr(r.notes).forEach(o => { const sl = D.slides[a + (parseInt(o.n) || 0) - 1]; if (sl && S1(o.t)) { sl.notes = S1(o.t); n++; } }); } catch (_) { }
+    }
+    persist(); paintAll(); toast(`🎙 ${n} slides me speaker notes jud gaye (PPTX me bhi jayenge)`);
+  });
+
+  /* ---------- NotebookLM-style: search -> choose sources -> extract ---------- */
+  async function wikiCands(topic) {
+    const out = [];
+    for (const lg of ['hi', 'en']) {
+      try {
+        const d = await (await fetch(`https://${lg}.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(topic)}&gsrlimit=6&prop=extracts|info&inprop=url&exlimit=max&explaintext=1&exchars=3500&format=json&origin=*`)).json();
+        Object.values(d?.query?.pages || {}).sort((a, b) => (a.index || 0) - (b.index || 0)).forEach(pg => { if (pg.extract && pg.extract.length > 150) out.push({ k: 'wiki', t: `Wikipedia (${lg}): ${pg.title}`, u: pg.fullurl || `https://${lg}.wikipedia.org/wiki/${encodeURIComponent(String(pg.title).replace(/ /g, '_'))}`, snip: pg.extract.replace(/\s+/g, ' ').slice(0, 180), text: `[Wikipedia ${lg}: ${pg.title}]\n${pg.extract}` }); });
+      } catch (_) { }
+    }
+    return out;
+  }
+  const ANGLES = [t => [`${t} — overview, definition and background`, 'Google: सामान्य जानकारी'], t => [`${t} — important facts, numbers, dates, names, formulas for exams`, 'Google: मुख्य तथ्य / तारीखें'], t => [`${t} — examples, applications, types, comparisons, previous year exam questions`, 'Google: उदाहरण / PYQ'], t => [`${t} latest news, updates and recent developments`, 'Google: ताज़ा खबरें']];
+  async function webCands(topic) {
+    const out = [], seen = new Set();
+    if (!getAIKey('gemini')) { S.warns.push('Google/YouTube के लिए Settings में Gemini key (free) चाहिए — अभी सिर्फ Wikipedia मिला।'); return out; }
+    let k = 0;
+    for (const A of ANGLES) {
+      const [q, label] = A(topic); status(`🌐 Google search ${++k}/${ANGLES.length}: ${label.replace('Google: ', '')}…`, 15 + k * 15);
+      try {
+        const r = await gem([{ text: `Search the web (Google) for: ${q}. ${NOTE_P}` }], [{ google_search: {} }]);
+        out.push({ k: 'gsum', t: '🌐 ' + label, u: '', snip: r.text.replace(/\s+/g, ' ').slice(0, 180), text: `[Google Search: ${q}]\n${r.text}` });
+        r.src.forEach(x => { if (x.u && !seen.has(x.u) && seen.add(x.u)) out.push({ k: 'web', t: x.t || x.u, u: x.u, snip: 'Web page — चुनने पर इसे पढ़ा जाएगा', text: '' }); });
+      } catch (e) { S.warns.push(`${label}: ${e.message || e}`); if (/429|limit|key/i.test(String(e.message))) break; }
+    }
+    return out;
+  }
+  async function linkCands() {
+    const out = [], links = String(S.form.links || '').split(/\s+/).filter(u => /^https?:\/\//i.test(u)).slice(0, 6);
+    for (const u of links) {
+      const m = u.match(YT);
+      if (m) { const y = 'https://www.youtube.com/watch?v=' + m[1], ti = await ytTitle(y); out.push({ k: 'yt', t: '▶️ ' + (ti || 'YouTube video'), u: y, snip: 'Video सुनकर उसके notes बनेंगे', text: '', pre: 1 }); }
+      else out.push({ k: 'web', t: '🔗 ' + u.replace(/^https?:\/\/(www\.)?/, '').slice(0, 60), u, snip: 'आपका दिया हुआ link — चुनने पर पढ़ा जाएगा', text: '', pre: 1 });
+    }
+    return out;
+  }
+  async function searchSrc() {
+    if (S.busy) return; const topic = S1(S.form.topic), hasLinks = /https?:\/\//i.test(S.form.links || '');
+    if (!topic && !hasLinks) return toast('Topic लिखें या YouTube / website link डालें।', 'error');
+    S.busy = true; S.pct = 8; S.status = '🔎 Sources ढूँढ रहा है…'; S.warns = []; app.render();
+    try {
+      const lk = await linkCands(); let w = [], g = [];
+      if (topic) { status('📖 Wikipedia में ढूँढ रहा है…', 10); w = await wikiCands(topic); g = await webCands(topic); }
+      S.cands = [...lk, ...g, ...w].map((c, i) => ({ ...c, id: 'c' + i })); S.sel = new Set(S.cands.filter(c => c.pre).map(c => c.id)); S.ctopic = topic;
+      if (lk.length && !getAIKey('gemini')) S.warns.push('YouTube / website link पढ़ने के लिए Gemini key (free) ज़रूरी है।');
+      status(S.cands.length ? `✅ ${S.cands.length} sources मिले — जो चाहिए वो चुनें।` : '❌ कुछ नहीं मिला — Topic बदलकर फिर search करें।', 100);
+    } catch (e) { toast('Search error: ' + (e.message || e), 'error'); status('❌ ' + (e.message || e), 0); }
+    finally { S.busy = false; app.render(); setTimeout(() => { const e = $('pp-cands'); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120); }
+  }
+  function candsHTML() {
+    if (!S.cands) return '';
+    const W = S.warns.length ? `<div class="p-3 rounded-xl bg-amber-950/40 border border-amber-700/50 text-[11px] text-amber-200 space-y-1">${S.warns.map(x => '⚠ ' + esc(x)).join('<br>')}</div>` : '';
+    if (!S.cands.length) return `<div id="pp-cands" class="rounded-2xl border border-rose-700/60 bg-rose-950/30 p-4 text-xs text-rose-200 space-y-2">${W}❌ "${esc(S.ctopic)}" पर कोई result नहीं मिला। Topic थोड़ा बदलकर (सही spelling / English नाम) फिर <b>Topic search</b> दबाएँ।</div>`;
+    return `<div id="pp-cands" class="rounded-2xl border border-emerald-700/60 bg-emerald-950/20 p-4 space-y-3">
+      <div class="flex items-center justify-between gap-2 flex-wrap"><div class="text-sm font-black text-emerald-300">🔎 ${S.ctopic ? `"${esc(S.ctopic)}" — ` : ""}${S.cands.length} sources मिले</div>
+      <div class="flex gap-2"><button type="button" onclick="window.app.pp.selAll(1)" class="px-3 py-1.5 rounded-lg text-[11px] font-black bg-slate-800 text-slate-200 border border-slate-700" style="min-height:0">सब चुनो</button><button type="button" onclick="window.app.pp.selAll(0)" class="px-3 py-1.5 rounded-lg text-[11px] font-black bg-slate-800 text-slate-200 border border-slate-700" style="min-height:0">हटाओ</button></div></div>
+      ${W}<div class="space-y-2 max-h-[420px] overflow-y-auto pr-1">${S.cands.map(c => `<label class="flex gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer"><input type="checkbox" data-cid="${c.id}" ${S.sel.has(c.id) ? 'checked' : ''} onchange="window.app.pp.tog('${c.id}',this.checked)" class="w-5 h-5 mt-0.5 shrink-0"><span class="min-w-0"><span class="block text-[13px] font-bold text-white">${esc(c.t)}</span><span class="block text-[11px] text-slate-400 mt-0.5">${esc(c.snip)}${c.snip.length >= 180 ? '…' : ''}</span>${c.u ? `<a href="${esc(c.u)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="block text-[10px] text-sky-400 underline truncate mt-0.5">${esc(c.u)}</a>` : ''}</span></label>`).join('')}</div>
+      <button type="button" id="pp-extract" onclick="window.app.pp.extractSel()" class="w-full py-3 rounded-2xl font-black text-sm bg-emerald-600 hover:bg-emerald-500 text-white">✅ चुने हुए (${S.sel.size}) sources से content निकालो</button>
+      <p class="text-[11px] text-slate-400">सही result नहीं दिख रहे? ऊपर Topic बदलकर फिर "Topic search" दबाएँ।</p></div>`;
+  }
+  function tog(id, on) { on ? S.sel.add(id) : S.sel.delete(id); const b = $('pp-extract'); if (b) b.textContent = `✅ चुने हुए (${S.sel.size}) sources से content निकालो`; }
+  function selAll(on) { S.sel = new Set(on ? S.cands.map(c => c.id) : []); document.querySelectorAll('#pp-cands [data-cid]').forEach(i => { i.checked = !!on; }); tog('', true); S.sel.delete(''); const b = $('pp-extract'); if (b) b.textContent = `✅ चुने हुए (${S.sel.size}) sources से content निकालो`; }
+  async function extractSel() {
+    if (S.busy) return; const picks = (S.cands || []).filter(c => S.sel.has(c.id)); if (!picks.length) return toast('कम से कम एक source चुनें।', 'error');
+    S.busy = true; S.pct = 5; S.status = '📥 Content निकाल रहा है…'; S.warns = []; app.render(); const parts = [], srcs = [], tp = S.ctopic;
+    try {
+      for (let i = 0; i < picks.length; i++) {
+        const c = picks[i]; status(`📥 ${i + 1}/${picks.length}: ${c.t.slice(0, 40)}…${c.k === 'yt' ? ' (video में 1-2 min लग सकते हैं)' : ''}`, Math.round(i / picks.length * 95));
+        let t = c.text;
+        try {
+          if (!t && c.k === 'yt') t = await ytExtract(c.u, tp);
+          else if (!t && c.k === 'web') {
+            try { const r = await gem([{ text: `Read this web page: ${c.u}\nFocus ONLY on the topic "${tp || c.t}" and ignore unrelated parts. ${NOTE_P}` }], [{ url_context: {} }]); t = `[Web: ${c.t}]\n${r.text}`; }
+            catch (_) { const r = await gem([{ text: `Find and summarize the content of this web page: ${c.t} (${c.u}). Topic: ${tp}. ${NOTE_P}` }], [{ google_search: {} }]); t = `[Web: ${c.t}]\n${r.text}`; }
+          }
+        } catch (e) { S.warns.push(`${c.t.slice(0, 40)}: ${e.message || e}`); t = ''; }
+        if (t && t.trim().length > 80) { parts.push(t); if (c.u) srcs.push({ t: c.t.replace(/^[▶️🔗\s]+/u, ''), u: c.u }); }
+      }
+      if (!parts.length) throw new Error('चुने हुए sources से content नहीं निकल पाया — नीचे दिए ⚠ कारण देखें / दूसरे sources चुनें।');
+      S.form.rtext = parts.join('\n\n').slice(0, 30000); S.sources = srcs; S.rkey = S1(S.form.topic) + '|' + S1(S.form.links);
+      status(`✅ ${parts.length}/${picks.length} sources से ${S.form.rtext.length} अक्षर मिले — नीचे Research Result में देखें/edit करें।`, 100);
+      setTimeout(() => { const e = $('pp-research'); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 150);
+    } catch (e) { toast(e.message || e, 'error'); status('❌ ' + (e.message || e), 0); }
+    finally { S.busy = false; app.render(); }
+  }
+
+  /* ---------- Study tools: narration text, Quiz game, Flashcards, Study guide ---------- */
+  function slideText(s) {
+    if (s.notes) return s.notes.replace(/\p{Extended_Pictographic}/gu, '');
+    const p = [s.title];
+    switch (s.type) {
+      case 'cover': p.push(s.subtitle, s.hook); break;
+      case 'points': case 'summary': p.push(...s.bullets); break;
+      case 'flow': case 'cycle': p.push(...s.steps.map((x, k) => `${k + 1}. ${x.t}. ${x.d}`)); break;
+      case 'mindmap': p.push(s.center, ...s.branches.map(b => b.t + ': ' + b.items.join(', '))); break;
+      case 'compare': p.push(s.left.t + ': ' + s.left.items.join(', '), s.right.t + ': ' + s.right.items.join(', ')); break;
+      case 'timeline': p.push(...s.events.map(e => e.w + ': ' + e.t)); break;
+      case 'table': p.push(s.headers.join(', '), ...s.rows.map(r => r.join(', '))); break;
+      case 'trick': p.push(s.mnemonic, ...s.breakdown.map(b => b.k + ' ' + b.v), s.tip); break;
+      case 'fact': p.push(s.big, s.caption, ...s.bullets); break;
+      case 'quiz': p.push(...s.qs.map(q => q.q + ' उत्तर: ' + q.o[q.a])); break;
+    }
+    return p.filter(Boolean).join('. ').replace(/\p{Extended_Pictographic}/gu, '');
+  }
+  const ovClose = () => { const e = document.getElementById('pp-ov'); if (e) e.remove(); };
+  function ovOpen() { ovClose(); const o = document.createElement('div'); o.id = 'pp-ov'; o.className = 'pp-ov'; document.body.appendChild(o); return o; }
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const poolOf = D => { const q = []; arr(D.slides).forEach(s => { if (s.type === 'quiz') arr(s.qs).forEach(x => q.push({ q: x.q, o: x.o, a: x.a, why: x.why })); }); arr(D.mcq).forEach(x => q.push(x)); return q; };
+  function runQuiz(pool, title) {
+    if (!pool.length) return toast('Quiz के लिए सवाल नहीं हैं।', 'error');
+    let Q = shuffle(pool).slice(0, 20), i = 0, sc = 0, streak = 0, best = 0, wrong = [], lock = false; const o = ovOpen();
+    const draw = () => {
+      if (i >= Q.length) {
+        const pc = Math.round(sc / Q.length * 100), msg = pc >= 80 ? '🏆 शानदार!' : pc >= 50 ? '👍 अच्छा — थोड़ी और practice' : '💪 फिर से कोशिश करो';
+        o.innerHTML = `<div class="pp-qwrap" style="text-align:center"><div style="font-size:56px">${pc >= 80 ? '🎉' : pc >= 50 ? '🙂' : '📚'}</div><div class="pp-qq">${msg}</div><div style="font-size:42px;font-weight:900;color:#e879f9">${sc} / ${Q.length}</div><div class="pp-qmeta">${pc}% • सबसे लंबी streak 🔥 ${best}</div>${wrong.length ? `<div style="text-align:left;margin-top:14px"><b style="color:#fda4af">गलत सवाल:</b>${wrong.map(w => `<div class="pp-rv"><b>${esc(w.q)}</b><br><span style="color:#6ee7b7">✓ ${esc(w.o[w.a])}</span>${w.why ? `<br><span style="color:#94a3b8">${esc(w.why)}</span>` : ''}</div>`).join('')}</div>` : ''}<button class="pp-ob" data-r="1" style="margin-top:14px;text-align:center">🔁 फिर खेलो</button>${wrong.length ? '<button class="pp-ob" data-r="2" style="text-align:center">❌ सिर्फ गलत वाले दोबारा</button>' : ''}<button class="pp-ob" data-x="1" style="text-align:center">बंद करो</button></div>`; return;
+      }
+      const q = Q[i], idx = shuffle([0, 1, 2, 3]); lock = false;
+      o.innerHTML = `<div class="pp-qwrap"><div class="pp-qtop"><b>🎮 ${esc(String(title).slice(0, 40))}</b><button data-x="1">✕</button></div><div class="pp-qbar"><i style="width:${Math.round(i / Q.length * 100)}%"></i></div><div class="pp-qmeta">सवाल ${i + 1}/${Q.length} • ⭐ ${sc}${streak > 1 ? ' • 🔥 ' + streak : ''}</div><div class="pp-qq">${esc(q.q)}</div>${idx.map((k, pos) => `<button class="pp-ob" data-k="${k}">${'ABCD'[pos]}. ${esc(q.o[k])}</button>`).join('')}<div id="pp-qfb"></div></div>`;
+    };
+    o.onclick = e => {
+      const t = e.target.closest('button'); if (!t) return;
+      if (t.dataset.x) return ovClose();
+      if (t.dataset.r) { Q = t.dataset.r === '2' ? shuffle(wrong) : shuffle(pool).slice(0, 20); i = 0; sc = 0; streak = 0; best = 0; wrong = []; return draw(); }
+      if (t.dataset.nx) { i++; return draw(); }
+      if (t.dataset.k == null || lock) return; lock = true; const q = Q[i], k = +t.dataset.k, ok = k === q.a;
+      o.querySelectorAll('.pp-ob').forEach(b => { if (+b.dataset.k === q.a) b.classList.add('ok'); else if (b === t) b.classList.add('bad'); });
+      if (ok) { sc++; streak++; best = Math.max(best, streak); } else { streak = 0; wrong.push(q); }
+      $('pp-qfb').innerHTML = `<div class="pp-fb ${ok ? 'g' : 'r'}">${ok ? '✅ सही!' : '❌ गलत — सही उत्तर: ' + esc(q.o[q.a])}${q.why ? `<div style="font-weight:600;margin-top:4px">💡 ${esc(q.why)}</div>` : ''}</div><button class="pp-ob" data-nx="1" style="text-align:center;background:#7c3aed">${i + 1 >= Q.length ? 'Result देखो 🏁' : 'अगला ▶'}</button>`;
+    };
+    draw();
+  }
+  const playQuiz = () => {
+    const D = S.deck; if (poolOf(D).length >= 5) return runQuiz(poolOf(D), D.title);
+    return aiTask('🎮 Quiz सवाल बन रहे हैं…', async () => {
+      const txt = D.slides.map((x, i) => `${i + 1}.${x.title}: ${JSON.stringify(x).slice(0, 260)}`).join('\n').slice(0, 14000);
+      const d = parseJSON(await ai(`${LANG[D.lang] || LANG.hi}\nDeck: "${D.title}". From the slides below write ${clamp(D.slides.length, 10, 25)} DIFFERENT exam-style MCQs (4 options each, one correct, a = index 0-3 of the correct option, short "why"). Facts must come only from the slides/sources; never invent.\n${txt}${D.ctx ? '\n\nSOURCES:\n' + D.ctx.slice(0, 5000) : ''}\nReturn ONLY {"mcq":[{"q":"","o":["","","",""],"a":0,"why":""}]}.`, 7000));
+      D.mcq = arr(d.mcq).map(x => ({ q: S1(x?.q), o: arr(x?.o).map(S1).slice(0, 4), a: clamp(parseInt(x?.a) || 0, 0, 3), why: S1(x?.why) })).filter(x => x.q && x.o.length === 4);
+      persist(); if (!poolOf(D).length) throw new Error('सवाल नहीं बन पाए'); runQuiz(poolOf(D), D.title);
+    });
+  };
+  function quizNote(id) {
+    const n = (window.state.db.notes || []).find(x => x.id === id); if (!n || !n.deckJson) return;
+    try { const d = JSON.parse(n.deckJson); d.slides = arr(d.slides).map(norm); runQuiz(poolOf(d), d.title || n.title); } catch (_) { toast('Quiz नहीं खुला।', 'error'); }
+  }
+  function showCards(D) {
+    const C = shuffle(arr(D.cards)).length ? arr(D.cards).slice() : []; if (!C.length) return toast('Flashcards नहीं हैं।', 'error');
+    let i = 0, flip = false, deck = C.slice(); const o = ovOpen();
+    const draw = () => { const c = deck[i]; o.innerHTML = `<div class="pp-qwrap"><div class="pp-qtop"><b>🃏 Flashcards</b><button data-x="1">✕</button></div><div class="pp-qbar"><i style="width:${Math.round((i + 1) / deck.length * 100)}%"></i></div><div class="pp-qmeta">${i + 1} / ${deck.length} • कार्ड पर tap करके पलटो</div><div class="pp-fc ${flip ? 'back' : ''}" data-f="1"><div>${flip ? '<small>उत्तर</small>' : '<small>सवाल</small>'}<br>${esc(flip ? c.b : c.f)}</div></div><div style="display:flex;gap:8px;margin-top:12px"><button class="pp-ob" data-p="1" style="text-align:center">◀</button><button class="pp-ob" data-s="1" style="text-align:center">🔀</button><button class="pp-ob" data-n="1" style="text-align:center">▶</button></div><button class="pp-ob" data-csv="1" style="text-align:center;margin-top:8px">⬇ CSV (Anki / Excel)</button></div>`; };
+    o.onclick = e => {
+      const t = e.target.closest('button,.pp-fc'); if (!t) return;
+      if (t.dataset.x) return ovClose();
+      if (t.dataset.f) flip = !flip; else if (t.dataset.n) { i = (i + 1) % deck.length; flip = false; } else if (t.dataset.p) { i = (i - 1 + deck.length) % deck.length; flip = false; } else if (t.dataset.s) { deck = shuffle(deck); i = 0; flip = false; }
+      else if (t.dataset.csv) { const q = v => '"' + String(v).replace(/"/g, '""') + '"'; return download(new Blob(['\ufeff' + C.map(c => q(c.f) + ',' + q(c.b)).join('\n')], { type: 'text/csv;charset=utf-8' }), fname(D.title) + '_flashcards.csv'); }
+      draw();
+    }; draw();
+  }
+  const flash = () => {
+    const D = S.deck; if (arr(D.cards).length) return showCards(D);
+    return aiTask('🃏 Flashcards बन रहे हैं…', async () => {
+      const txt = D.slides.map((x, i) => `${i + 1}.${x.title}: ${JSON.stringify(x).slice(0, 260)}`).join('\n').slice(0, 14000);
+      const d = parseJSON(await ai(`${LANG[D.lang] || LANG.hi}\nDeck: "${D.title}". Make ${clamp(Math.round(D.slides.length * 1.5), 12, 40)} exam flashcards from these slides: "f" = short question/term (<=14 words), "b" = precise answer (<=25 words). Only facts from the slides; never invent.\n${txt}\nReturn ONLY {"cards":[{"f":"","b":""}]}.`, 7000));
+      D.cards = arr(d.cards).map(c => ({ f: S1(c?.f), b: S1(c?.b) })).filter(c => c.f && c.b); if (!D.cards.length) throw new Error('Flashcards नहीं बन पाए'); persist(); showCards(D);
+    });
+  };
+  const studyGuide = () => {
+    const D = S.deck, show = () => { const o = ovOpen(); o.innerHTML = `<div class="pp-qwrap"><div class="pp-qtop"><b>📖 Study Guide</b><button data-x="1">✕</button></div><div class="pp-guide">${esc(D.guide)}</div><div style="display:flex;gap:8px;margin-top:12px"><button class="pp-ob" data-c="1" style="text-align:center">Copy</button><button class="pp-ob" data-d="1" style="text-align:center">⬇ .txt</button><button class="pp-ob" data-g="1" style="text-align:center">🔄 नया</button></div></div>`; o.onclick = e => { const t = e.target.closest('button'); if (!t) return; if (t.dataset.x) ovClose(); else if (t.dataset.c) { try { navigator.clipboard.writeText(D.guide); toast('Copy ho gaya ✔'); } catch (_) { } } else if (t.dataset.d) download(new Blob([D.guide], { type: 'text/plain;charset=utf-8' }), fname(D.title) + '_study_guide.txt'); else if (t.dataset.g) { D.guide = ''; ovClose(); studyGuide(); } }; };
+    if (D.guide) return show();
+    return aiTask('📖 Study Guide बन रही है…', async () => {
+      const txt = D.slides.map((x, i) => `${i + 1}.${x.title}: ${JSON.stringify(x).slice(0, 300)}`).join('\n').slice(0, 15000);
+      const d = parseJSON(await ai(`${LANG[D.lang] || LANG.hi}\nWrite a NotebookLM-style STUDY GUIDE for "${D.title}" from the slides below, plain text (no markdown symbols), with these sections: 1) सार (5-7 lines) 2) मुख्य शब्द / Glossary (10-15 terms with 1-line meaning) 3) Important Dates/Numbers 4) FAQ (8 questions with short answers) 5) Exam Tips & Common Mistakes. Only use facts from the slides/sources.\n${txt}${D.ctx ? '\n\nSOURCES:\n' + D.ctx.slice(0, 5000) : ''}\nReturn ONLY {"guide":"..."}.`, 8000));
+      D.guide = S1(d.guide); if (D.guide.length < 100) { D.guide = ''; throw new Error('Guide नहीं बन पाई'); } persist(); show();
+    });
+  };
+
+  /* ---------- prompts ---------- */
+  const LANG = { hi: 'भाषा: सरल हिंदी (देवनागरी)। ज़रूरी technical शब्द English में रख सकते हैं।', hinglish: 'Language: Hinglish (Hindi written in Roman script), casual student-friendly tone.', en: 'Language: simple, clear English.' };
+  const SCHEMA = `SLIDE JSON TYPES (use exactly these keys):
+{"type":"cover","title":"viral hook title","subtitle":"","hook":"short punchy line","emoji":"🔥"}
+{"type":"points","title":"","emoji":"","bullets":["max 12 words each"],"notes":"speaker note"}
+{"type":"flow","title":"","emoji":"","steps":[{"t":"short step","d":"max 8 words"}]}   (3-7 steps, a real process/flowchart)
+{"type":"cycle","title":"","emoji":"","center":"keyword","steps":[{"t":"","d":""}]}   (3-6 steps, repeating cycle)
+{"type":"mindmap","title":"","emoji":"","center":"topic","branches":[{"t":"branch","items":["short","short"]}]}   (3-6 branches, max 3 items)
+{"type":"compare","title":"","emoji":"","left":{"t":"A","items":[""]},"right":{"t":"B","items":[""]}}   (3-5 items each)
+{"type":"timeline","title":"","emoji":"","events":[{"w":"year/step","t":"what happened"}]}   (3-6 events)
+{"type":"table","title":"","emoji":"","headers":["",""],"rows":[["",""]]}   (max 5 rows, 4 columns)
+{"type":"trick","title":"","emoji":"","mnemonic":"WORD/phrase (max 9 letters ideal)","breakdown":[{"k":"letter","v":"what it stands for"}],"tip":"how to remember"}
+{"type":"fact","title":"","emoji":"","big":"number or word","caption":"what it means","bullets":[""]}
+{"type":"quiz","title":"","emoji":"","qs":[{"q":"","o":["","","",""],"a":0,"why":"1 line"}]}   (2-3 questions, a = index 0-3)
+{"type":"summary","title":"","emoji":"","bullets":["revision points"],"cta":"Like • Share • Subscribe style line"}`;
+  const RULES = `QUALITY RULES: STAY STRICTLY ON THE GIVEN TOPIC — ignore any part of the SOURCES that is about a different subject; short punchy text (no paragraphs); one clear idea per slide; every slide has a fitting emoji; make diagrams (flow/cycle/mindmap/timeline) genuinely logical and accurate; "trick" slides must be a REAL mnemonic whose letters map to the real facts; cover title = curiosity hook (question / surprising claim) in <= 9 words; use exam-relevant facts, numbers and dates only when you are sure — NEVER invent facts; prefer the SOURCES when given.`;
+  const STYLE = { standard: '', detailed: 'DECK STYLE: DETAILED — deep, comprehensive coverage; every sub-topic gets its own slide with exam-relevant facts.', revision: 'DECK STYLE: QUICK REVISION — ultra-short, one-glance slides, mnemonics, tables and rapid-fire facts only.', exam: 'DECK STYLE: EXAM-FOCUSED — previous-year-question style facts, many quiz slides, traps/confusions and one-liners.', teach: 'DECK STYLE: TEACHER / PRESENTER — story-like flow, simple examples, analogies and questions to the class.' };
+  const MAXS = 100;
+  const planMore = (f, plan, src, N, want) => `Deck: "${plan.title || f.topic}". Topic: ${f.topic || ''}. ${LANG[f.lang] || LANG.hi}\nThe outline so far has ${plan.slides.length} slides of ${N} total: ${plan.slides.map((p, i) => `${i + 1}.${p.title}`).join(' | ').slice(0, 5000)}\nContinue the outline with the NEXT ${want} slides (numbers ${plan.slides.length + 1}-${plan.slides.length + want}). No repeats. ${plan.slides.length + want >= N ? 'The very last slide must be type "summary".' : 'Do NOT add a final summary yet.'} Allowed types: ${TYPES.join(', ')}. Add a "quiz" slide about every 8-10 slides.\nReturn ONLY {"slides":[{"type":"","title":"","focus":""}]}${src ? `\n\nSOURCES:\n${src.slice(0, 6000)}` : ''}`;
+  const planPrompt = (f, src, N, PN) => `Topic: ${f.topic || '(see notes below)'}\nAudience / exam: ${f.exam || 'general students'}\n${LANG[f.lang] || LANG.hi}\nPlan a VIRAL, highly engaging slide deck with EXACTLY ${N} slides — like NotebookLM slides crossed with the best YouTube explainer.${STYLE[f.style] ? '\n' + STYLE[f.style] : ''}${N > PN ? `\n- The deck is long (${N} slides): in THIS reply plan ONLY the FIRST ${PN} slides (slide 1 = "cover"), organised into logical chapters; do NOT add a summary yet, more slides will be planned after.` : '\n- slide 1 = "cover"; last slide = "summary".'}\n- Mix (scale with deck size): at least 2 diagram slides per ~10 slides (flow / cycle / mindmap / timeline), at least 1 "trick" slide, a "compare" or "table" slide when the topic allows, 1 "fact" slide, and a "quiz" slide before the summary (only if N >= 7; for long decks one quiz about every 8-10 slides).\n- Allowed types: ${TYPES.join(', ')}.\nReturn ONLY: {"title":"deck title","subtitle":"one line","slides":[{"type":"","title":"","focus":"what this slide must teach, 1 line"}]}${src ? `\n\nSOURCES:\n${src.slice(0, 9000)}` : ''}`;
+  const writePrompt = (f, plan, a, b, src) => `${STYLE[f.style] || ''}\nDeck: "${plan.title}" (${plan.slides.length} slides). Topic: ${f.topic || ''}. Audience / exam: ${f.exam || 'general'}.\n${LANG[f.lang] || LANG.hi}\nWrite ONLY slides ${a + 1} to ${b}, exactly as planned:\n${plan.slides.slice(a, b).map((p, i) => `#${a + i + 1} [${p.type}] ${p.title} — ${p.focus}`).join('\n')}\n\nFull outline (context): ${plan.slides.map((p, i) => `${i + 1}.${p.title}`).join(' | ').slice(0, 4500)}\n\n${SCHEMA}\n${RULES}${src ? `\n\nSOURCES:\n${src.slice(0, 12000)}` : ''}\n\nReturn ONLY {"slides":[...]} with exactly ${b - a} slide objects in order.`;
+
+  /* ---------- generation ---------- */
+  async function generate() {
+    if (S.busy) return;
+    const f = S.form, topic = S1(f.topic), links = S1(f.links);
+    if (S.ctopic && S.ctopic !== topic) { f.rtext = ''; S.sources = []; S.rkey = ''; S.cands = null; S.sel = new Set(); S.ctopic = ''; toast('Topic badal gaya — purani research hata di gayi।', 'error'); }
+    const notes = [S1(f.notes), S1(f.rtext), ...S.files.map(x => '[File: ' + x.name + ']\n' + x.text)].filter(Boolean).join('\n\n');
+    if (!topic && !links && notes.length < 40) return toast('पहले Topic लिखें, YouTube/website link डालें या notes paste करें।', 'error');
+    S.busy = true; S.pct = 3; S.status = 'Shuru ho raha hai…'; HIST.u = []; HIST.r = []; app.render();
+    try {
+      const rk = topic + '|' + links; let src = notes, sources = S.rkey === rk ? (S.sources || []) : [];
+      if ((f.research || links) && (topic || links) && (S.rkey !== rk || !S1(f.rtext))) {
+        status('🌐 Web / YouTube se research ho raha hai…', 8);
+        try { const r = await research(topic, links); sources = r.sources; r.msgs.forEach(m => toast(m, 'error')); if (r.text.trim().length > 150) { f.rtext = r.text; S.rkey = rk; S.sources = sources; src = (notes ? notes + '\n\n' : '') + r.text; } else toast('Research se kam data mila — AI ki knowledge se bana rahe hain।', 'error'); } catch (_) { }
+      }
+      status('🧠 Deck ka plan ban raha hai…', 25);
+      const N = clamp(parseInt(f.count) || 10, 4, MAXS); let plan;
+      const PN = Math.min(N, 30);
+      for (let t = 0; t < 2; t++) { try { plan = parseJSON(await ai(planPrompt(f, src, N, PN), Math.min(14000, 3500 + PN * 120))); if (arr(plan.slides).length >= 3) break; } catch (e) { if (t) throw e; } }
+      plan.slides = arr(plan.slides).slice(0, N);
+      for (let k = 0; k < 8 && plan.slides.length < N; k++) {
+        const have = plan.slides.length, want = Math.min(N - have, 30); status(`🧠 Plan ban raha hai… ${have}/${N}`, 12 + Math.round(have / N * 12));
+        try { const more = arr(parseJSON(await ai(planMore(f, plan, src, N, want), Math.min(14000, 2500 + want * 120))).slides); if (!more.length) break; plan.slides = plan.slides.concat(more).slice(0, N); } catch (_) { await wait(1500); }
+      }
+      if (plan.slides.length < N) { const base = plan.slides.length; for (let i = base; i < N; i++) plan.slides.push({ type: 'points', title: 'Extra Points ' + (i - base + 1), focus: 'Add more important exam points about the topic' }); }
+      plan.slides = arr(plan.slides).slice(0, N).map(p => ({ type: TYPES.includes(p?.type) ? p.type : 'points', title: S1(p?.title) || 'Slide', focus: S1(p?.focus) }));
+      const total = plan.slides.length, B = total > 40 ? 5 : 4, jobs = []; for (let i = 0; i < total; i += B) jobs.push([i, Math.min(total, i + B)]);
+      const out = new Array(total); let done = 0, ptr = 0, failed = 0;
+      const work = async () => {
+        while (ptr < jobs.length) {
+          const [a, b] = jobs[ptr++]; let got = null;
+          for (let t = 0; t < 3 && !got; t++) { try { got = arr(parseJSON(await ai(writePrompt(f, plan, a, b, src), 9000)).slides); if (!got.length) got = null; } catch (_) { got = null; await wait(1500 * (t + 1)); } }
+          if (!got) failed += (b - a);
+          for (let i = a; i < b; i++) { const raw = got && got[i - a]; out[i] = raw ? norm({ ...raw, type: TYPES.includes(raw.type) ? raw.type : plan.slides[i].type }) : norm({ type: 'points', title: plan.slides[i].title, bullets: ['⚠ AI से यह slide नहीं बनी — "🔄 Slide दोबारा बनाओ" दबाएँ'], fail: 1 }); }
+          done += b - a; status(`✍️ Slides ban rahi hain… ${done}/${total}`, 25 + Math.round(done / total * 60));
+        }
+      };
+      const conc = (!getAIProxyUrl() && ['groq', 'cerebras', 'openrouter'].includes(getAIProvider())) ? 1 : (total > 40 ? 3 : 2);
+      await Promise.all(Array.from({ length: conc }, work));
+      S.deck = { title: S1(plan.title) || topic || 'Untitled Deck', topic, theme: f.theme, lang: f.lang, slides: out, sources, ctx: src.slice(0, 12000), report: null };
+      S.id = null; S.cur = 0; persist();
+      if (f.recheck) { status('🔍 AI सारे facts दोबारा जाँच रहा है…', 88); try { await recheck(); persist(); } catch (e) { console.warn(e); toast('Facts recheck पूरा नहीं हुआ — बाद में "AI Facts Recheck" दबाएँ।', 'error'); } }
+      status('✅ Taiyaar!', 100);
+      toast(failed ? `${total} slides bani, ${failed} slides me AI fail hua — upar "दोबारा बनाओ" दबाएँ।` : `✅ ${total} slides ban gayi — edit karein ya download karein।`, failed ? 'error' : 'success');
+    } catch (e) { console.error(e); toast('Deck nahi ban paya: ' + (e.message || e), 'error'); status('❌ ' + (e.message || e), 0); }
+    finally { S.busy = false; app.render(); }
+  }
+  /* ---------- AI fact re-check ---------- */
+  async function recheck() {
+    const D = S.deck, B = 6, issues = [], ctx = (D.ctx || '').slice(0, 9000);
+    for (let a = 0; a < D.slides.length; a += B) {
+      const batch = D.slides.slice(a, a + B);
+      status(`🔍 Facts जाँच रहे हैं… ${Math.min(a + B, D.slides.length)}/${D.slides.length}`);
+      const prompt = `You are a STRICT fact-checker for Indian competitive-exam study material. Check EVERY fact, name, date, number, formula, spelling, mnemonic letter-mapping and every quiz answer key (a = index 0-3 of the correct option) in the slides below${ctx ? ', treating SOURCES as ground truth where they cover the point' : ''}. Fix anything wrong or doubtful; if you are not sure a claim is true, soften or remove it. Keep each slide's type and structure, same language, no extra fluff.\n${SCHEMA}\n\nSLIDES (JSON): ${JSON.stringify(batch)}\n${ctx ? '\nSOURCES:\n' + ctx : ''}\n\nReturn ONLY {"slides":[...exactly ${batch.length} slides in the same order...],"issues":[{"n":1,"was":"old wrong text","now":"corrected text","why":"short reason"}]}. "n" = slide number inside this batch starting at 1. Use an empty issues list if everything is correct.`;
+      try {
+        const d = parseJSON(await ai(prompt, 9000)), got = arr(d.slides);
+        if (got.length === batch.length) got.forEach((g, k) => { const keep = batch[k]; D.slides[a + k] = { ...norm({ ...g, type: keep.type }), ...(keep.fail ? { fail: 1 } : {}) }; });
+        arr(d.issues).forEach(x => issues.push({ n: a + (parseInt(x?.n) || 1), was: S1(x?.was), now: S1(x?.now), why: S1(x?.why) }));
+      } catch (e) { issues.push({ n: a + 1, was: '', now: '', why: `⚠ Slide ${a + 1}-${Math.min(a + B, D.slides.length)} जाँच नहीं हो पाई (${String(e.message || e).slice(0, 60)})` }); }
+    }
+    D.report = issues.slice(0, 40); return issues.length;
+  }
+  const aiCheck = () => aiTask('🔍 सारे facts जाँच रहा है…', async () => { if (!S.deck) return; snap(); const n = await recheck(); persist(); paintAll(); toast(n ? `🔍 ${n} बातें सुधारी/जाँची गईं — नीचे report देखें।` : '✅ सब facts सही मिले।'); });
+  async function regenAt(idx) {
+    const s = S.deck.slides[idx], outline = S.deck.slides.map((x, i) => `${i + 1}.${x.title}`).join(' | ');
+    const d = parseJSON(await ai(`Deck: "${S.deck.title}". ${LANG[S.deck.lang] || LANG.hi}\nOutline: ${outline}\nWrite slide #${idx + 1} again COMPLETELY and ACCURATELY. Type: ${s.type}. Title: ${s.title}.\n${SCHEMA}\n${RULES}${S.deck.ctx ? `\n\nSOURCES:\n${S.deck.ctx.slice(0, 7000)}` : ''}\nReturn ONLY {"slide":{...}}.`, 4000));
+    S.deck.slides[idx] = norm({ ...(d.slide || d), type: s.type });
+  }
+  const aiRegen = () => aiTask('🔄 Slide दोबारा बन रही है…', async () => { snap(); await regenAt(S.cur); persist(); paintAll(); toast('Slide दोबारा बन गई ✔'); });
+  const aiRegenFailed = () => aiTask('🔄 Failed slides बन रही हैं…', async () => { snap(); let ok = 0, bad = 0; for (let i = 0; i < S.deck.slides.length; i++) if (S.deck.slides[i].fail) { try { await regenAt(i); ok++; } catch (_) { bad++; } } persist(); paintAll(); toast(bad ? `${ok} बनीं, ${bad} में फिर fail — थोड़ी देर बाद दोबारा दबाएँ।` : `✅ ${ok} slides बन गईं`, bad ? 'error' : 'success'); });
+  const failHTML = () => { const n = S.deck ? S.deck.slides.filter(x => x.fail).length : 0; return n ? `<div class="p-3 rounded-xl bg-rose-950/40 border border-rose-800/50 text-xs text-rose-200 flex items-center justify-between gap-2"><span>⚠ ${n} slide में AI fail हुआ था</span><button type="button" onclick="window.app.pp.aiRegenFailed()" class="px-3 py-2 rounded-lg bg-rose-600 text-white font-black shrink-0">🔄 दोबारा बनाओ</button></div>` : ''; };
+  const reportHTML = () => {
+    const d = S.deck; if (!d) return ''; const src = d.sources || [], rep = d.report;
+    let h = `<div class="text-xs font-black text-sky-300 mb-1">📚 Sources</div>` + (src.length ? `<ul class="text-[11px] space-y-1 mb-3">${src.map(x => `<li class="truncate">${/^https?:\/\//i.test(x.u) ? `<a href="${esc(x.u)}" target="_blank" rel="noopener" class="text-sky-400 underline">${esc(x.t || x.u)}</a>` : esc(x.t)}</li>`).join('')}</ul>` : `<p class="text-[11px] text-amber-300 mb-3">⚠ कोई web source नहीं मिला — deck AI की याददाश्त से बना है। "🔍 AI Facts Recheck" ज़रूर चलाएँ।</p>`);
+    if (rep) h += `<div class="text-xs font-black text-emerald-300 mb-1">🔍 Recheck report — ${rep.length ? rep.length + ' बातें' : 'सब सही मिला ✔'}</div>` + rep.map(x => `<div class="text-[11px] mb-2 p-2 rounded-lg bg-slate-900 border border-slate-800"><b class="text-white">Slide ${x.n}</b>${x.was || x.now ? `<div class="text-rose-300 line-through">${esc(x.was)}</div><div class="text-emerald-300">${esc(x.now)}</div>` : ''}<div class="text-slate-400">${esc(x.why)}</div></div>`).join('');
+    return `<div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4">${h}</div>`;
+  };
+  function paintFail() { const e = $('pp-fail'); if (e) e.innerHTML = failHTML(); }
+  function paintReport() { const e = $('pp-report'); if (e) e.innerHTML = reportHTML(); }
+  async function aiTask(btnMsg, fn) {
+    if (S.busy) return toast('AI abhi kaam kar raha hai, thoda ruko…', 'error');
+    S.busy = true; const m = $('pp-ai-msg'); if (m) m.textContent = btnMsg;
+    try { await fn(); } catch (e) { console.error(e); toast('AI error: ' + (e.message || e), 'error'); }
+    finally { S.busy = false; const m2 = $('pp-ai-msg'); if (m2) m2.textContent = ''; }
+  }
+  const aiSlide = () => aiTask('✨ Slide badal rahi hai…', async () => {
+    const ins = S1($('pp-ai-ins')?.value); if (!ins) return toast('Instruction likhein (jaise: "isko flowchart bana do").', 'error');
+    const d = parseJSON(await ai(`Current slide JSON:\n${JSON.stringify(cur())}\n\nUser instruction: ${ins}\n${LANG[S.deck.lang] || LANG.hi}\n${SCHEMA}\n${RULES}\nRewrite this ONE slide following the instruction (you may change its type). Return ONLY {"slide":{...}}.`, 4000));
+    snap(); S.deck.slides[S.cur] = norm(d.slide || d); persist(); paintAll(); toast('Slide update ho gayi ✔');
+  });
+  const aiDeck = () => aiTask('🪄 Poora deck badal raha hai…', async () => {
+    const ins = S1($('pp-deck-ins')?.value); if (!ins) return toast('Deck ke liye instruction likhein (jaise: "thoda aasan Hindi karo", "2 quiz slides aur jodo").', 'error');
+    const all = S.deck.slides; let sl = [], d = { title: '' };
+    if (all.length <= 24) { d = parseJSON(await ai(`Current deck JSON:\n${JSON.stringify({ title: S.deck.title, slides: all })}\n\nUser instruction for the WHOLE deck: ${ins}\n${LANG[S.deck.lang] || LANG.hi}\n${SCHEMA}\n${RULES}\nApply the instruction; keep everything else. Return ONLY {\"title\":\"\",\"slides\":[...]}.`, 12000)); sl = arr(d.slides).map(norm); }
+    else for (let a = 0; a < all.length; a += 12) {
+      status(`🪄 Deck update ho raha hai… ${Math.min(a + 12, all.length)}/${all.length}`);
+      const part = all.slice(a, a + 12);
+      try { const r = parseJSON(await ai(`Deck: \"${S.deck.title}\". Slides ${a + 1}-${a + part.length} of ${all.length} (JSON):\n${JSON.stringify(part)}\n\nUser instruction for the WHOLE deck: ${ins}\n${LANG[S.deck.lang] || LANG.hi}\n${SCHEMA}\n${RULES}\nApply the instruction to THESE slides only; keep everything else. Return ONLY {\"slides\":[...]}.`, 12000)); const g = arr(r.slides).map(norm); sl = sl.concat(g.length ? g : part); } catch (_) { sl = sl.concat(part); }
+    }
+    if (sl.length < 2) throw new Error('AI ne slides nahi di');
+    snap(); S.deck.slides = sl; if (S1(d.title)) S.deck.title = S1(d.title); S.cur = Math.min(S.cur, sl.length - 1); persist(); paintAll(); toast('Poora deck update ho gaya ✔');
+  });
+  const aiHooks = () => aiTask('🔥 Viral hooks soch raha hai…', async () => {
+    const d = parseJSON(await ai(`Topic: ${S.deck.topic || S.deck.title}. Deck: ${S.deck.title}. ${LANG[S.deck.lang] || LANG.hi}\nGive 6 VIRAL YouTube/Shorts hook titles (curiosity, shock, or exam-urgency; <= 9 words each) plus a punchy one-line hook for each. Return ONLY {"hooks":[{"title":"","hook":""}]}.`, 1800));
+    S.hooks = arr(d.hooks).slice(0, 6).map(h => ({ title: S1(h?.title), hook: S1(h?.hook) })).filter(h => h.title); paintHooks();
+  });
+
+  /* ---------- editor ---------- */
+  const IN = 'mt-1 w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-normal';
+  const tx = (l, k, v) => `<label class="block text-[11px] text-slate-400 font-bold mb-3">${l}<input value="${esc(v)}" oninput="window.app.pp.edit('${k}',this.value)" class="${IN}"></label>`;
+  const ta = (l, k, v, r, h) => `<label class="block text-[11px] text-slate-400 font-bold mb-3">${l}<textarea rows="${r}" oninput="window.app.pp.edit('${k}',this.value)" class="${IN}">${esc(v)}</textarea>${h ? `<span class="block text-[10px] text-slate-500 font-normal mt-1">${h}</span>` : ''}</label>`;
+  const ser = {
+    steps: s => s.steps.map(x => x.d ? `${x.t} | ${x.d}` : x.t).join('\n'),
+    branches: s => s.branches.map(b => `${b.t}: ${b.items.join('; ')}`).join('\n'),
+    events: s => s.events.map(e => `${e.w} | ${e.t}`).join('\n'),
+    table: s => [s.headers.join(' | '), ...s.rows.map(r => r.join(' | '))].join('\n'),
+    breakdown: s => s.breakdown.map(b => `${b.k} = ${b.v}`).join('\n'),
+    quiz: s => s.qs.map(q => [q.q, ...q.o, q.a + 1, q.why].join(' | ')).join('\n')
+  };
+  function editorHTML() {
+    const s = cur(); if (!s) return '';
+    let h = `<div class="text-xs font-black text-cyan-300 mb-3">${TYPE_LABEL[s.type] || s.type} • Slide ${S.cur + 1}</div>` + tx('Title', 'title', s.title) + tx('Emoji', 'emoji', s.emoji);
+    switch (s.type) {
+      case 'cover': h += tx('Subtitle', 'subtitle', s.subtitle) + tx('Hook line', 'hook', s.hook); break;
+      case 'points': h += ta('Points (हर line = एक point)', 'bullets', s.bullets.join('\n'), 6); break;
+      case 'summary': h += ta('Points (हर line = एक point)', 'bullets', s.bullets.join('\n'), 5) + tx('CTA line', 'cta', s.cta); break;
+      case 'flow': h += stepsEd(s); break;
+      case 'cycle': h += tx('Center keyword', 'center', s.center) + stepsEd(s); break;
+      case 'mindmap': h += tx('Center', 'center', s.center) + branchEd(s); break;
+      case 'compare': h += tx('Left title', 'lt', s.left.t) + ta('Left points', 'li', s.left.items.join('\n'), 4) + tx('Right title', 'rt', s.right.t) + ta('Right points', 'ri', s.right.items.join('\n'), 4); break;
+      case 'timeline': h += evEd(s); break;
+      case 'table': h += tblEd(s); break;
+      case 'trick': h += tx('Mnemonic / Trick word', 'mnemonic', s.mnemonic) + brEd(s) + tx('Yaad rakhne ka tip', 'tip', s.tip); break;
+      case 'fact': h += tx('Big number / word', 'big', s.big) + tx('Caption', 'caption', s.caption) + ta('Extra points', 'bullets', s.bullets.join('\n'), 3); break;
+      case 'quiz': h += qEd(s); break;
+    }
+    return h + ta('Speaker note (optional)', 'notes', s.notes || '', 2);
+  }
+  const CB = 'px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700';
+  const pin = (p, v, ph) => `<input data-p="${p}" value="${esc(v)}" placeholder="${ph || ''}" oninput="window.app.pp.sp(this)" class="${IN}">`;
+  const pta = (p, v, ph, r, m) => `<textarea data-p="${p}" ${m ? `data-m="${m}"` : ''} rows="${r}" placeholder="${ph || ''}" oninput="window.app.pp.sp(this)" class="${IN}">${esc(v)}</textarea>`;
+  const rcard = (key, i, title, inner) => `<div class="p-2.5 mb-2 rounded-xl bg-slate-900 border border-slate-700"><div class="flex items-center justify-between"><span class="text-[11px] font-black text-cyan-300">${title}</span><button type="button" onclick="window.app.pp.rm('${key}',${i})" class="text-rose-300 text-xs font-black px-2 py-1">✕ हटाएँ</button></div>${inner}</div>`;
+  const addB = (key, l) => `<button type="button" onclick="window.app.pp.addRow('${key}')" class="w-full mb-3 py-2.5 rounded-xl text-xs font-black bg-slate-800 border border-dashed border-slate-500 text-slate-100">＋ ${l}</button>`;
+  const stepsEd = s => s.steps.map((x, i) => rcard('steps', i, 'Step ' + (i + 1), pin(`steps.${i}.t`, x.t, 'Step का नाम') + pin(`steps.${i}.d`, x.d, 'छोटा detail (optional)'))).join('') + addB('steps', 'Step जोड़ें');
+  const branchEd = s => s.branches.map((b, i) => rcard('branches', i, 'Branch ' + (i + 1), pin(`branches.${i}.t`, b.t, 'Branch का नाम') + pta(`branches.${i}.items`, b.items.join('\n'), 'हर line = एक point (max 3)', 3, 'lines'))).join('') + addB('branches', 'Branch जोड़ें');
+  const evEd = s => s.events.map((e, i) => rcard('events', i, 'Event ' + (i + 1), pin(`events.${i}.w`, e.w, 'साल / Step') + pin(`events.${i}.t`, e.t, 'क्या हुआ'))).join('') + addB('events', 'Event जोड़ें');
+  const brEd = s => s.breakdown.map((b, i) => rcard('breakdown', i, 'अक्षर ' + (i + 1), `<div class="grid grid-cols-[84px_1fr] gap-2">${pin(`breakdown.${i}.k`, b.k, 'अक्षर')}${pin(`breakdown.${i}.v`, b.v, 'मतलब')}</div>`)).join('') + addB('breakdown', 'अक्षर जोड़ें');
+  const qEd = s => s.qs.map((q, qi) => rcard('qs', qi, 'Question ' + (qi + 1), pin(`qs.${qi}.q`, q.q, 'प्रश्न') + q.o.map((o, k) => `<label class="flex items-center gap-2 mt-1"><input type="radio" name="qa${S.cur}_${qi}" ${q.a === k ? 'checked' : ''} onchange="window.app.pp.setAns(${qi},${k})" class="w-5 h-5 accent-emerald-500 shrink-0"><span class="text-[11px] font-black text-slate-300 w-4 shrink-0">${'ABCD'[k]}</span>${pin(`qs.${qi}.o.${k}`, o, 'Option ' + 'ABCD'[k])}</label>`).join('') + `<div class="text-[10px] text-emerald-300 mt-1">● गोल बटन = सही उत्तर</div>` + pin(`qs.${qi}.why`, q.why, 'सही क्यों है (1 line)'))).join('') + addB('qs', 'Question जोड़ें');
+  const tblEd = s => { const n = s.headers.length, g = `style="display:grid;grid-template-columns:repeat(${n},minmax(0,1fr));gap:6px"`; return `<div class="text-[11px] font-bold text-slate-400 mt-1">Headers (कॉलम)</div><div ${g}>${s.headers.map((h, c) => pin(`headers.${c}`, h, 'Header')).join('')}</div><div class="flex gap-2 my-2"><button type="button" onclick="window.app.pp.addCol()" class="${CB}">＋ कॉलम</button><button type="button" onclick="window.app.pp.rmCol()" class="${CB}">－ कॉलम</button></div>` + s.rows.map((r, ri) => rcard('rows', ri, 'Row ' + (ri + 1), `<div ${g}>${s.headers.map((_, c) => pin(`rows.${ri}.${c}`, r[c] || '', '—')).join('')}</div>`)).join('') + addB('rows', 'Row जोड़ें'); };
+  const LIM = { steps: s => s.type === 'flow' ? 8 : 6, branches: () => 6, events: () => 6, breakdown: () => 8, qs: () => 3, rows: () => 6 };
+  const MIN = { steps: 2, branches: 1, events: 1, breakdown: 1, qs: 1, rows: 1 };
+  const TPL = { steps: () => ({ t: '', d: '' }), branches: () => ({ t: '', items: [] }), events: () => ({ w: '', t: '' }), breakdown: () => ({ k: '', v: '' }), qs: () => ({ q: '', o: ['', '', '', ''], a: 0, why: '' }), rows: s => s.headers.map(() => '') };
+  function refreshEd() { const e = $('pp-editor'); if (e) e.innerHTML = editorHTML(); paintStage(); paintThumb(S.cur); autosave(); }
+  function addRow(k) { const s = cur(); if (!s || !s[k]) return; const m = LIM[k](s); if (s[k].length >= m) return toast(`अधिकतम ${m} ही जोड़ सकते हैं।`, 'error'); snap(); s[k].push(TPL[k](s)); refreshEd(); }
+  function rm(k, i) { const s = cur(); if (!s || !s[k]) return; if (s[k].length <= MIN[k]) return toast('इससे कम नहीं हो सकता।', 'error'); snap(); s[k].splice(i, 1); refreshEd(); }
+  function addCol() { const s = cur(); if (!s || !s.headers) return; if (s.headers.length >= 4) return toast('अधिकतम 4 कॉलम।', 'error'); snap(); s.headers.push(''); s.rows.forEach(r => r.push('')); refreshEd(); }
+  function rmCol() { const s = cur(); if (!s || !s.headers) return; if (s.headers.length <= 2) return toast('कम से कम 2 कॉलम चाहिए।', 'error'); snap(); s.headers.pop(); s.rows.forEach(r => r.pop()); refreshEd(); }
+  function setAns(qi, k) { const s = cur(); if (!s || !s.qs[qi]) return; snap(); s.qs[qi].a = k; paintStage(); paintThumb(S.cur); autosave(); }
+  function sp(el) { const s = cur(); if (!s) return; burst(); const P = el.dataset.p.split('.'); let o = s; for (let j = 0; j < P.length - 1; j++) o = o[P[j]]; o[P[P.length - 1]] = el.dataset.m === 'lines' ? lines(el.value).slice(0, 3) : el.value; liveRefresh(); }
+  function edit(k, v) {
+    const s = cur(); if (!s) return; burst();
+    switch (k) {
+      case 'title': case 'emoji': case 'notes': case 'subtitle': case 'hook': case 'center': case 'big': case 'caption': case 'tip': case 'mnemonic': case 'cta': s[k] = v; break;
+      case 'bullets': s.bullets = lines(v); break;
+      case 'steps': s.steps = lines(v).map(stepObj); break;
+      case 'branches': s.branches = lines(v).map(l => { const i = l.indexOf(':'); return i < 0 ? { t: l, items: [] } : { t: l.slice(0, i).trim(), items: l.slice(i + 1).split(';').map(S1).filter(Boolean) }; }); break;
+      case 'lt': s.left.t = v; break; case 'rt': s.right.t = v; break;
+      case 'li': s.left.items = lines(v); break; case 'ri': s.right.items = lines(v); break;
+      case 'events': s.events = lines(v).map(l => { const p = l.split('|'); return { w: S1(p[0]), t: S1(p.slice(1).join('|')) }; }); break;
+      case 'table': { const L = lines(v).map(l => l.split('|').map(S1)); s.headers = L[0] || []; s.rows = L.slice(1); break; }
+      case 'breakdown': s.breakdown = lines(v).map(l => { const i = l.indexOf('='); return i < 0 ? { k: l, v: '' } : { k: l.slice(0, i).trim(), v: l.slice(i + 1).trim() }; }); break;
+      case 'quiz': s.qs = lines(v).map(l => { const p = l.split('|').map(S1), o = p.slice(1, 5); while (o.length < 4) o.push(''); return { q: p[0], o, a: clamp((parseInt(p[5]) || 1) - 1, 0, 3), why: p.slice(6).join(' | ') }; }); break;
+    }
+    liveRefresh();
+  }
+  let lt; function liveRefresh() { clearTimeout(lt); lt = setTimeout(() => { paintStage(); paintThumb(S.cur); autosave(); }, 220); }
+
+  /* ---------- painting ---------- */
+  const stageBox = i => `<div class="pp-fit">${slideHTML(S.deck.slides[i], i, S.deck.slides.length, S.deck.theme, S.deck.title, S.deck.sources)}</div>`;
+  function fit(box) { const sl = box && box.firstElementChild; if (sl && box.clientWidth) sl.style.transform = `scale(${box.clientWidth / 1280})`; }
+  const fitAll = () => document.querySelectorAll('#pp-root .pp-fit').forEach(fit);
+  const thumbsHTML = () => S.deck.slides.map((s, i) => `<button type="button" data-th="${i}" onclick="window.app.pp.go(${i})" class="pp-th ${i === S.cur ? 'on' : ''}"><div class="pp-thwrap">${Math.abs(i - S.cur) <= 6 ? stageBox(i) : `<div class="pp-fit pp-ph"><b>${i + 1}</b></div>`}</div><span>${i + 1}. ${esc(TYPE_LABEL[s.type] || s.type)}${s.fail ? ' ⚠' : ''}</span></button>`).join('');
+  function paintStage() { const el = $('pp-stage'); if (!el || !S.deck) return; el.innerHTML = stageBox(S.cur); fit(el.firstElementChild); const c = $('pp-count'); if (c) c.textContent = `${S.cur + 1} / ${S.deck.slides.length}`; }
+  function paintThumb(i) { const w = document.querySelector(`#pp-thumbs [data-th="${i}"] .pp-thwrap`); if (w && S.deck.slides[i]) { w.innerHTML = stageBox(i); fit(w.firstElementChild); } }
+  function lazyThumbs() { const el = $('pp-thumbs'); if (!el || !S.deck) return; const r = el.getBoundingClientRect(); el.querySelectorAll('.pp-ph').forEach(ph => { const b = ph.getBoundingClientRect(); if (b.right > r.left - 300 && b.left < r.right + 300) paintThumb(+ph.closest('.pp-th').dataset.th); }); }
+  function paintThumbs() { const el = $('pp-thumbs'); if (!el || !S.deck) return; el.innerHTML = thumbsHTML(); fitAll(); el.querySelector('.on')?.scrollIntoView({ inline: 'center', block: 'nearest' }); if (!el.dataset.lz) { el.dataset.lz = 1; let t; el.addEventListener('scroll', () => { clearTimeout(t); t = setTimeout(lazyThumbs, 120); }); } setTimeout(lazyThumbs, 60); }
+  function markThumb() { document.querySelectorAll('#pp-thumbs .pp-th').forEach(b => b.classList.toggle('on', +b.dataset.th === S.cur)); document.querySelector('#pp-thumbs .on')?.scrollIntoView({ inline: 'center', block: 'nearest' }); setTimeout(lazyThumbs, 250); }
+  function paintHooks() { const el = $('pp-hooks'); if (!el) return; el.innerHTML = S.hooks.map((h, i) => `<button type="button" onclick="window.app.pp.useHook(${i})" class="w-full text-left p-2.5 rounded-xl bg-slate-950 border border-slate-700 hover:border-fuchsia-500 text-xs"><b class="text-white">${esc(h.title)}</b><span class="block text-slate-400 mt-0.5">${esc(h.hook)}</span></button>`).join(''); }
+  function paintAll() { if (!S.deck) return; paintFail(); paintReport(); const t = $('pp-dtitle'); if (t && document.activeElement !== t) t.value = S.deck.title; paintStage(); paintThumbs(); const e = $('pp-editor'); if (e) e.innerHTML = editorHTML(); }
+
+  /* ---------- slide operations ---------- */
+  const BLANK = {
+    cover: { title: 'Viral Title Yahan', subtitle: 'Subtitle', hook: '🔥 Hook line', emoji: '🚀' },
+    points: { title: 'Key Points', bullets: ['Point 1', 'Point 2', 'Point 3'], emoji: '📌' },
+    flow: { title: 'Process Flow', steps: [{ t: 'Step 1', d: '' }, { t: 'Step 2', d: '' }, { t: 'Step 3', d: '' }], emoji: '🔀' },
+    cycle: { title: 'Cycle', center: 'Topic', steps: [{ t: 'Step 1', d: '' }, { t: 'Step 2', d: '' }, { t: 'Step 3', d: '' }, { t: 'Step 4', d: '' }], emoji: '🔄' },
+    mindmap: { title: 'Mind Map', center: 'Topic', branches: [{ t: 'Branch 1', items: ['a', 'b'] }, { t: 'Branch 2', items: ['a', 'b'] }, { t: 'Branch 3', items: ['a', 'b'] }, { t: 'Branch 4', items: ['a', 'b'] }], emoji: '🧠' },
+    compare: { title: 'A vs B', left: { t: 'A', items: ['point', 'point'] }, right: { t: 'B', items: ['point', 'point'] }, emoji: '⚖️' },
+    timeline: { title: 'Timeline', events: [{ w: 'Step 1', t: '...' }, { w: 'Step 2', t: '...' }, { w: 'Step 3', t: '...' }], emoji: '⏳' },
+    table: { title: 'Table', headers: ['Item', 'Detail'], rows: [['A', '...'], ['B', '...']], emoji: '📊' },
+    trick: { title: 'Yaad Rakhne ki Trick', mnemonic: 'TRICK', breakdown: [{ k: 'T', v: '...' }], tip: '', emoji: '💡' },
+    fact: { title: 'Big Fact', big: '100', caption: '...', bullets: [], emoji: '🤯' },
+    quiz: { title: 'Quick Quiz', qs: [{ q: 'Question?', o: ['A', 'B', 'C', 'D'], a: 0, why: '' }], emoji: '❓' },
+    summary: { title: 'Quick Revision', bullets: ['Point 1', 'Point 2'], cta: '👍 Like • Share • Subscribe', emoji: '✅' }
+  };
+  const ops = {
+    go(i) { if (!S.deck) return; S.cur = clamp(i, 0, S.deck.slides.length - 1); paintStage(); markThumb(); const e = $('pp-editor'); if (e) e.innerHTML = editorHTML(); },
+    prev() { ops.go(S.cur - 1); }, next() { ops.go(S.cur + 1); },
+    move(d) { snap(); const a = S.cur, b = a + d; if (b < 0 || b >= S.deck.slides.length) return; [S.deck.slides[a], S.deck.slides[b]] = [S.deck.slides[b], S.deck.slides[a]]; S.cur = b; persist(); paintAll(); },
+    dup() { snap(); S.deck.slides.splice(S.cur + 1, 0, JSON.parse(JSON.stringify(cur()))); S.cur++; persist(); paintAll(); },
+    delSlide() { if (S.deck.slides.length <= 1) return toast('Kam se kam 1 slide rahni chahiye।', 'error'); if (!confirm('Ye slide delete karein?')) return; snap(); S.deck.slides.splice(S.cur, 1); S.cur = Math.min(S.cur, S.deck.slides.length - 1); persist(); paintAll(); },
+    add(type) { if (!type) return; snap(); S.deck.slides.splice(S.cur + 1, 0, norm({ type, ...BLANK[type] })); S.cur++; persist(); paintAll(); const sel = $('pp-add'); if (sel) sel.value = ''; },
+    setTheme(t) { S.deck.theme = t; persist(); paintStage(); paintThumbs(); document.querySelectorAll('.pp-tchip').forEach(b => b.classList.toggle('on', b.dataset.t === t)); },
+    dtitle(v) { S.deck.title = v; autosave(); liveRefresh(); },
+    useHook(i) { const h = S.hooks[i]; if (!h) return; snap(); let c = S.deck.slides[0]; if (!c || c.type !== 'cover') { c = norm({ type: 'cover', title: h.title, subtitle: S.deck.title, hook: h.hook, emoji: '🔥' }); S.deck.slides.unshift(c); S.cur = 0; } else { c.title = h.title; c.hook = h.hook; } persist(); paintAll(); toast('Hook cover par lag gaya ✔'); },
+    newDeck() { HIST.u = []; HIST.r = []; S.deck = null; S.id = null; S.status = ''; S.pct = 0; S.hooks = []; app.render(); },
+    open(id) { const r = S.decks.find(d => d.id === id); if (!r) return; HIST.u = []; HIST.r = []; S.deck = JSON.parse(JSON.stringify(r.deck)); S.id = id; S.cur = 0; S.hooks = []; app.render(); setTimeout(() => $('pp-stage')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80); },
+    rmDeck(id) { if (!confirm('Ye deck hamesha ke liye delete karein?')) return; S.decks = S.decks.filter(d => d.id !== id); saveDecks(); if (S.id === id) { S.deck = null; S.id = null; } app.render(); },
+    setCount(n) { S.form.count = n; app.render(); },
+    copyR() { try { navigator.clipboard.writeText(S.form.rtext || ''); toast('Copy ho gaya ✔'); } catch (_) { toast('Copy nahi hua', 'error'); } },
+    clearR() { S.form.rtext = ''; S.sources = []; S.rkey = ''; S.cands = null; S.sel = new Set(); S.ctopic = ''; app.render(); },
+    rmFile(i) { S.files.splice(i, 1); app.render(); },
+    gotoN(v) { const n = parseInt(v); if (n >= 1 && S.deck && n <= S.deck.slides.length) ops.go(n - 1); },
+    f(el) { const k = el.dataset.k; S.form[k] = el.type === 'checkbox' ? el.checked : el.type === 'number' ? (parseInt(el.value) || '') : el.value; }
+  };
+
+  /* ---------- exports ---------- */
+  const fname = t => S1(t).replace(/[^\p{L}\p{M}\p{N}]+/gu, '_').replace(/^_|_$/g, '').slice(0, 50) || 'slides';
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  function download(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 3000); }
+  const loadScript = u => new Promise((ok, no) => { if (document.querySelector(`script[data-pp="${u}"]`)) return ok(); const sc = document.createElement('script'); sc.src = u; sc.dataset.pp = u; sc.onload = ok; sc.onerror = () => { sc.remove(); no(new Error('Library load nahi hui — internet check karein।')); }; document.head.appendChild(sc); });
+  const FONTLINK = '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;700;900&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">';
+  const allSlides = () => S.deck.slides.map((s, i) => slideHTML(s, i, S.deck.slides.length, S.deck.theme, S.deck.title, S.deck.sources)).join('');
+
+  function exportHTML() {
+    const d = S.deck;
+    const js = "var s=[].slice.call(document.querySelectorAll('.pp-slide')),i=0;function f(){var k=Math.min(innerWidth/1280,innerHeight/720);s.forEach(function(e,j){e.style.display=j==i?'block':'none';e.style.transform='translate(-50%,-50%) scale('+k+')'})}function g(d){i=Math.max(0,Math.min(s.length-1,i+d));f()}addEventListener('resize',f);addEventListener('keydown',function(e){if(e.key=='ArrowRight'||e.key==' '||e.key=='PageDown')g(1);if(e.key=='ArrowLeft'||e.key=='PageUp')g(-1)});document.addEventListener('click',function(e){g(e.clientX>innerWidth/2?1:-1)});f();";
+    const html = `<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(d.title)}</title>${FONTLINK}<style>${CSS}html,body{margin:0;height:100%;background:#000;overflow:hidden}.pp-slide{position:absolute;left:50%;top:50%;transform-origin:center center;animation:ppIn .5s ease both}@keyframes ppIn{from{opacity:0;filter:blur(8px)}to{opacity:1;filter:none}}</style></head><body>${allSlides()}<script>${js}<` + `/script></body></html>`;
+    download(new Blob([html], { type: 'text/html' }), fname(d.title) + '.html');
+  }
+  function exportPDF() {
+    const d = S.deck, fr = document.createElement('iframe'); fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+    document.body.appendChild(fr); const doc = fr.contentWindow.document; doc.open();
+    doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(d.title)}</title>${FONTLINK}<style>${CSS}@page{size:1280px 720px;margin:0}html,body{margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pp-slide{page-break-after:always;break-after:page}</style></head><body>${allSlides()}</body></html>`); doc.close();
+    toast('Print window me "Save as PDF" chunein (Landscape, Margins: None)।', 'success');
+    setTimeout(() => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (_) { toast('Print khul nahi paya', 'error'); } setTimeout(() => fr.remove(), 90000); }, 1300);
+  }
+  async function shot(i, jpeg) {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    const d = S.deck, host = document.createElement('div'); host.style.cssText = 'position:fixed;left:0;top:0;width:1280px;height:720px;z-index:-1;pointer-events:none';
+    host.innerHTML = slideHTML(d.slides[i], i, d.slides.length, d.theme, d.title, d.sources); document.body.appendChild(host);
+    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; const c = await window.html2canvas(host.firstElementChild, { scale: 1.5, backgroundColor: null, width: 1280, height: 720, useCORS: true }); return await new Promise(r => c.toBlob(r, jpeg ? 'image/jpeg' : 'image/png', 0.9)); }
+    finally { host.remove(); }
+  }
+  const JSZIP = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', JSPDF = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+  async function exportPNG(all) {
+    if (!all) { download(await shot(S.cur), `${fname(S.deck.title)}_${S.cur + 1}.png`); return; }
+    await loadScript(JSZIP); const z = new window.JSZip(), n = S.deck.slides.length;
+    for (let i = 0; i < n; i++) { dlMsg(`🖼️ PNG ${i + 1}/${n}…`); await sleep(30); z.file(`${fname(S.deck.title)}_${String(i + 1).padStart(2, '0')}.png`, await shot(i)); }
+    dlMsg('📦 ZIP ban rahi hai…'); download(await z.generateAsync({ type: 'blob' }), fname(S.deck.title) + '_slides.zip');
+  }
+  async function exportPDFimg() {
+    await loadScript(JSPDF); const { jsPDF } = window.jspdf, n = S.deck.slides.length;
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [1280, 720], hotfixes: ['px_scaling'] });
+    for (let i = 0; i < n; i++) {
+      dlMsg(`📄 PDF ${i + 1}/${n}…`); await sleep(30); const b = await shot(i, true);
+      const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
+      if (i) pdf.addPage([1280, 720], 'landscape'); pdf.addImage(url, 'JPEG', 0, 0, 1280, 720);
+    }
+    download(pdf.output('blob'), fname(S.deck.title) + '.pdf');
+  }
+  async function exportPPTX() {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js');
+    const d = S.deck, th = THEMES[d.theme] || THEMES.neon, hx = c => String(c).replace('#', '').toUpperCase();
+    const P = new window.PptxGenJS(); P.layout = 'LAYOUT_WIDE'; P.title = d.title;
+    const F = 'Arial', INK = hx(th.ink), BG = hx(th.bg), A = hx(th.a), B = hx(th.b), C = hx(th.c), CX = th.cx, MUTE = hx(th.mute), pc = [A, B, C], N = d.slides.length;
+    const arrow = (sl, x1, y1, x2, y2, col) => sl.addShape(P.ShapeType.line, { x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1), flipH: x2 < x1, flipV: y2 < y1, line: { color: col, width: 2.5, endArrowType: 'triangle' } });
+    const box = (sl, x, y, w, h, runs, o = {}) => sl.addText(runs, { shape: P.ShapeType.roundRect, rectRadius: 0.12, x, y, w, h, fill: { color: o.fill || CX }, line: { color: o.line || A, width: o.lw || 2 }, color: o.color || INK, fontFace: F, align: o.align || 'center', valign: 'middle', margin: 6 });
+    const ttl = (sl, s) => sl.addText(`${s.emoji} ${s.title}`, { x: 0.55, y: 0.3, w: 12.2, h: 0.95, fontSize: 32, bold: true, color: INK, fontFace: F, valign: 'middle', fit: 'shrink' });
+    const stepRuns = (x, k) => [{ text: `${k}. ${x.t}`, options: { bold: true, fontSize: 18, breakLine: !!x.d } }].concat(x.d ? [{ text: x.d, options: { fontSize: 13, color: MUTE } }] : []);
+    d.slides.map(norm).forEach((s, i) => {
+      const sl = P.addSlide(); sl.background = { color: BG };
+      sl.addShape(P.ShapeType.rect, { x: 0, y: 7.38, w: 13.33 * (i + 1) / N, h: 0.12, fill: { color: A }, line: { color: A, width: 0 } });
+      sl.addText(`${i + 1} / ${N}`, { x: 11.6, y: 7.0, w: 1.5, h: 0.3, fontSize: 11, color: MUTE, align: 'right', fontFace: F });
+      if (s.notes) sl.addNotes(s.notes);
+      if (s.type === 'cover') {
+        sl.addShape(P.ShapeType.ellipse, { x: 9.3, y: -1.6, w: 6, h: 6, fill: { color: A, transparency: 78 }, line: { color: A, width: 0 } });
+        sl.addShape(P.ShapeType.ellipse, { x: 10.6, y: 4.9, w: 4, h: 4, fill: { color: B, transparency: 75 }, line: { color: B, width: 0 } });
+        sl.addText(s.emoji, { x: 0.8, y: 0.9, w: 2, h: 1.2, fontSize: 60, fontFace: F });
+        sl.addText(s.title, { x: 0.8, y: 2.1, w: 9.6, h: 2.3, fontSize: 48, bold: true, color: INK, fontFace: F, valign: 'top', fit: 'shrink' });
+        if (s.subtitle) sl.addText(s.subtitle, { x: 0.8, y: 4.5, w: 9.6, h: 0.8, fontSize: 22, color: MUTE, fontFace: F });
+        if (s.hook) box(sl, 0.8, 5.5, 8.6, 0.85, [{ text: s.hook, options: { bold: true, fontSize: 20, color: BG } }], { fill: C, line: C });
+        return;
+      }
+      ttl(sl, s);
+      if (s.type === 'points' || s.type === 'summary') {
+        const n = s.bullets.length, step = Math.min(1.15, (s.cta ? 4.4 : 5.2) / n), fs = n >= 6 ? 20 : n >= 5 ? 24 : n === 4 ? 28 : 30;
+        s.bullets.forEach((b, k) => box(sl, 0.7, 1.5 + k * step, 11.9, step - 0.14, [{ text: `${s.type === 'summary' ? '✓' : k + 1 + '.'}  ${b}`, options: { fontSize: fs, bold: true } }], { align: 'left', line: pc[k % 3] }));
+        if (s.cta) box(sl, 0.7, 6.1, 11.9, 0.8, [{ text: s.cta, options: { fontSize: 22, bold: true, color: BG } }], { fill: A, line: A });
+        if (s.type === 'summary' && (d.sources || []).length) sl.addText('📚 स्रोत: ' + d.sources.slice(0, 4).map(x => String(x.t).slice(0, 30)).join(' • '), { x: 0.7, y: 6.95, w: 10.5, h: 0.3, fontSize: 10, color: MUTE, fontFace: F });
+      } else if (s.type === 'flow') {
+        const n = s.steps.length, per = n <= 4 ? n : Math.ceil(n / 2), rows = [s.steps.slice(0, per), s.steps.slice(per)].filter(r => r.length), gap = 0.55, bw = (12.1 - (per - 1) * gap) / per, bh = rows.length === 1 ? 2.0 : 1.7, ys = rows.length === 1 ? [2.6] : [1.7, 4.4]; let k = 0;
+        rows.forEach((r, ri) => r.forEach((x, idx) => {
+          k++; const pos = ri % 2 ? per - 1 - idx : idx, bx = 0.6 + pos * (bw + gap), y = ys[ri];
+          box(sl, bx, y, bw, bh, stepRuns(x, k), { line: pc[ri % 3] });
+          if (idx < r.length - 1) { const ym = y + bh / 2; if (ri % 2) arrow(sl, bx, ym, bx - gap, ym, C); else arrow(sl, bx + bw, ym, bx + bw + gap, ym, C); }
+        }));
+        if (rows.length === 2) { const cx = 0.6 + (per - 1) * (bw + gap) + bw / 2; arrow(sl, cx, ys[0] + bh, cx, ys[1], C); }
+      } else if (s.type === 'cycle' || s.type === 'mindmap') {
+        const cx = 6.67, cy = 4.2, isC = s.type === 'cycle', items = isC ? s.steps : s.branches, n = items.length, rx = isC ? 4.3 : 4.6, ry = isC ? 2.05 : 2.0;
+        const start = isC ? -90 : (n % 2 ? -90 : -180 + 180 / n), P2 = items.map((_, i) => { const a = (start + 360 * i / n) * Math.PI / 180; return [cx + rx * Math.cos(a), cy + ry * Math.sin(a)]; });
+        if (isC) P2.forEach((p, i) => { const q = P2[(i + 1) % n], dx = q[0] - p[0], dy = q[1] - p[1]; arrow(sl, p[0] + dx * 0.3, p[1] + dy * 0.3, q[0] - dx * 0.3, q[1] - dy * 0.3, C); });
+        else P2.forEach((p, i) => arrow(sl, cx, cy, p[0], p[1], pc[i % 3]));
+        items.forEach((x, i) => { const w = isC ? 2.7 : 3.0, h = isC ? 1.0 : 1.4; box(sl, P2[i][0] - w / 2, P2[i][1] - h / 2, w, h, isC ? stepRuns(x, i + 1) : [{ text: x.t, options: { bold: true, fontSize: 16, breakLine: x.items.length > 0 } }].concat(x.items.map((it, j) => ({ text: '• ' + it, options: { fontSize: 12, color: MUTE, breakLine: j < x.items.length - 1 } }))), { line: pc[i % 3] }); });
+        const ctr = isC ? s.center : s.center; if (ctr) sl.addText(ctr, { shape: P.ShapeType.ellipse, x: cx - 1.4, y: cy - 0.65, w: 2.8, h: 1.3, fill: { color: B }, line: { color: B, width: 0 }, color: BG, bold: true, fontSize: 18, fontFace: F, align: 'center', valign: 'middle', fit: 'shrink' });
+      } else if (s.type === 'compare') {
+        [[s.left, 0.6, A], [s.right, 6.85, B]].forEach(([side, x, col]) => {
+          sl.addShape(P.ShapeType.roundRect, { x, y: 1.5, w: 5.9, h: 5.1, rectRadius: 0.15, fill: { color: CX }, line: { color: col, width: 2.5 } });
+          sl.addText(side.t, { x: x + 0.3, y: 1.6, w: 5.3, h: 0.8, fontSize: 26, bold: true, color: col, fontFace: F });
+          sl.addText(side.items.map(it => ({ text: it, options: { bullet: true, breakLine: true } })), { x: x + 0.3, y: 2.5, w: 5.3, h: 3.9, fontSize: 20, color: INK, fontFace: F, valign: 'top', paraSpaceAfter: 8 });
+        });
+        sl.addText('VS', { shape: P.ShapeType.ellipse, x: 6.17, y: 3.55, w: 1, h: 1, fill: { color: C }, line: { color: BG, width: 3 }, color: BG, bold: true, fontSize: 20, fontFace: F, align: 'center', valign: 'middle' });
+      } else if (s.type === 'timeline') {
+        const n = s.events.length; sl.addShape(P.ShapeType.rect, { x: 0.6, y: 4.1, w: 12.1, h: 0.07, fill: { color: MUTE }, line: { color: MUTE, width: 0 } });
+        s.events.forEach((e, k) => { const x = 0.6 + (k + 0.5) / n * 12.1, up = k % 2 === 0; sl.addShape(P.ShapeType.ellipse, { x: x - 0.17, y: 3.95, w: 0.34, h: 0.34, fill: { color: pc[k % 3] }, line: { color: BG, width: 2 } }); box(sl, x - 1.3, up ? 1.9 : 4.55, 2.6, 1.6, [{ text: e.w, options: { bold: true, fontSize: 22, color: C, breakLine: true } }, { text: e.t, options: { fontSize: 17 } }], { line: pc[k % 3] }); });
+      } else if (s.type === 'table') {
+        const cw = 12.1 / s.headers.length;
+        const rows = [s.headers.map(h => ({ text: h, options: { bold: true, color: BG, fill: { color: A }, fontSize: 24, fontFace: F } })), ...s.rows.map(r => s.headers.map((_, c) => ({ text: r[c] || '', options: { color: INK, fill: { color: CX }, fontSize: 22, fontFace: F } })))];
+        sl.addTable(rows, { x: 0.6, y: 1.6, w: 12.1, colW: Array(s.headers.length).fill(cw), border: { type: 'solid', color: MUTE, pt: 1 }, rowH: Math.min(0.9, 5.0 / (s.rows.length + 1)), valign: 'middle' });
+      } else if (s.type === 'trick') {
+        const ch = Array.from(s.mnemonic.replace(/\s+/g, ''));
+        if (ch.length <= 9) ch.forEach((c, k) => box(sl, 0.6 + k * 1.25, 1.5, 1.1, 1.3, [{ text: c, options: { bold: true, fontSize: 44, color: BG } }], { fill: pc[k % 3], line: pc[k % 3] }));
+        else box(sl, 0.6, 1.5, 12.1, 1.3, [{ text: s.mnemonic, options: { bold: true, fontSize: 30, color: BG } }], { fill: A, line: A });
+        s.breakdown.forEach((b, k) => box(sl, 0.6 + (k % 2) * 6.1, 3.1 + Math.floor(k / 2) * 0.72, 6.0, 0.62, [{ text: `${b.k}  =  ${b.v}`, options: { fontSize: 19, bold: true } }], { align: 'left', line: pc[k % 3], lw: 1.5 }));
+        if (s.tip) box(sl, 0.6, 6.15, 12.1, 0.75, [{ text: '💡 ' + s.tip, options: { fontSize: 18, bold: true, color: BG } }], { fill: C, line: C });
+      } else if (s.type === 'fact') {
+        sl.addText(s.big, { x: 0.6, y: 1.7, w: 12.1, h: 2.2, fontSize: 90, bold: true, color: A, fontFace: F, align: 'center', valign: 'middle', fit: 'shrink' });
+        sl.addText(s.caption, { x: 1.2, y: 4.0, w: 10.9, h: 1.0, fontSize: 28, bold: true, color: INK, fontFace: F, align: 'center', valign: 'top' });
+        if (s.bullets.length) sl.addText(s.bullets.map(b => ({ text: '• ' + b, options: { breakLine: true } })), { x: 2, y: 5.2, w: 9.3, h: 1.5, fontSize: 18, color: MUTE, fontFace: F, align: 'center', valign: 'top' });
+      } else if (s.type === 'quiz') {
+        const n = s.qs.length, bh = Math.min(1.9, 5.3 / n);
+        s.qs.forEach((q, qi) => {
+          const o = q.o.map((t, k) => ({ text: `${'ABCD'[k]}. ${t}${k === q.a ? ' ✓' : ''}`, options: { fontSize: 17, bold: k === q.a, color: k === q.a ? C : INK } }));
+          const runs = [{ text: `Q${qi + 1}. ${q.q}`, options: { bold: true, fontSize: 20, breakLine: true } }, { text: o[0].text + '        ', options: o[0].options }, { text: o[1].text, options: { ...o[1].options, breakLine: true } }, { text: o[2].text + '        ', options: o[2].options }, { text: o[3].text, options: { ...o[3].options, breakLine: !!q.why } }];
+          if (q.why) runs.push({ text: '💡 ' + q.why, options: { fontSize: 14, color: MUTE } });
+          box(sl, 0.6, 1.5 + qi * (bh + 0.1), 12.1, bh, runs, { align: 'left', line: pc[qi % 3] });
+        });
+      }
+    });
+    await P.writeFile({ fileName: fname(d.title) + '.pptx' });
+  }
+  const dlMsg = m => { const e = $('pp-dl-msg'); if (e) e.textContent = m || ''; };
+  async function dl(kind) {
+    if (!S.deck) return;
+    try {
+      dlMsg('⏳ Tayyar ho raha hai…');
+      if (kind === 'pptx') await exportPPTX(); else if (kind === 'pdf') await exportPDFimg(); else if (kind === 'pdfprint') exportPDF(); else if (kind === 'html') exportHTML(); else if (kind === 'png') await exportPNG(false); else if (kind === 'pngall') await exportPNG(true);
+      dlMsg(kind === 'pdfprint' ? '' : '✅ Download shuru ho gaya'); setTimeout(() => dlMsg(''), 4000);
+    } catch (e) { console.error(e); dlMsg(''); toast('Download error: ' + (e.message || e), 'error'); }
+  }
+
+  /* ---------- fullscreen present mode ---------- */
+  function present(dk, st) {
+    const D = dk || S.deck; if (!D) return; let i = dk ? (st || 0) : S.cur, timer = null; const n = D.slides.length;
+    const o = document.createElement('div'); o.id = 'pp-present';
+    o.innerHTML = `<div class="pp-pwrap"></div><div class="pp-pui"><button data-a="x">✕</button><button data-a="p">◀</button><span id="pp-pn"></span><button data-a="n">▶</button><button data-a="a">⏯ Auto</button><button data-a="v">🔊 Narrate</button></div>`;
+    document.body.appendChild(o); try { o.requestFullscreen && o.requestFullscreen(); } catch (_) { }
+    const w = o.querySelector('.pp-pwrap'); let narr = false, tok = 0;
+    const speak = () => { try { const sy = window.speechSynthesis; sy.cancel(); const my = ++tok, u = new SpeechSynthesisUtterance(slideText(D.slides[i])); u.lang = D.lang === 'en' ? 'en-IN' : 'hi-IN'; u.rate = 0.95; u.onend = () => { if (my === tok && narr) { if (i < n - 1) setTimeout(() => { if (my === tok && narr) go(1); }, 600); else narr = false; } }; sy.speak(u); } catch (_) { toast('इस browser में आवाज़ (TTS) नहीं चलती।', 'error'); narr = false; } };
+    const paint = () => { const k = Math.min(innerWidth / 1280, innerHeight / 720); w.style.transform = `translate(-50%,-50%) scale(${k})`; w.innerHTML = slideHTML(D.slides[i], i, n, D.theme, D.title, D.sources); $('pp-pn').textContent = `${i + 1} / ${n}`; };
+    const go = d => { i = clamp(i + d, 0, n - 1); paint(); if (narr) speak(); else { try { speechSynthesis.cancel(); } catch (_) { } } };
+    const close = () => { narr = false; tok++; try { speechSynthesis.cancel(); } catch (_) { } clearInterval(timer); removeEventListener('keydown', key); removeEventListener('resize', paint); try { document.fullscreenElement && document.exitFullscreen(); } catch (_) { } o.remove(); if (!dk) { S.cur = i; paintStage(); markThumb(); const e = $('pp-editor'); if (e) e.innerHTML = editorHTML(); } };
+    const key = e => { if (e.key === 'Escape') close(); else if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(-1); };
+    o.addEventListener('click', e => { const a = e.target.dataset && e.target.dataset.a; if (a === 'x') close(); else if (a === 'p') go(-1); else if (a === 'n') go(1); else if (a === 'v') { narr = !narr; if (narr) speak(); else { tok++; try { speechSynthesis.cancel(); } catch (_) { } } e.target.textContent = narr ? '⏹ Stop' : '🔊 Narrate'; } else if (a === 'a') { if (timer) { clearInterval(timer); timer = null; } else timer = setInterval(() => { if (i >= n - 1) { clearInterval(timer); timer = null; } else go(1); }, 6000); } else if (!a) go(e.clientX > innerWidth / 2 ? 1 : -1); });
+    addEventListener('keydown', key); addEventListener('resize', paint); paint();
+  }
+
+  /* ---------- publish to students (shows in Notes section) ---------- */
+  async function publish() {
+    const D = S.deck; if (!D) return; const id = D.pubId || ('note_deck_' + Date.now());
+    const json = JSON.stringify({ title: D.title, theme: D.theme, lang: D.lang, sources: D.sources || [], mcq: D.mcq || [], slides: D.slides.map(x => { const c = { ...x }; delete c.fail; return c; }) });
+    if (json.length > 900000) return toast('Deck bahut bada hai — slides kam karein।', 'error');
+    const doc = { id, title: D.title, subject: 'Slides', pdfUrl: '', deckJson: json, createdAt: Date.now() };
+    const list = window.state.db.notes, k = list.findIndex(n => n.id === id); if (k >= 0) list[k] = doc; else list.unshift(doc);
+    const r = await dbService.saveDocument('notes', id, doc); D.pubId = id; persist(); app.render();
+    toast(r && r.ok && r.cloud ? '🎓 Publish हो गया — students को Notes में "Slides देखें" दिखेगा।' : 'सिर्फ इस device में save हुआ (Cloud DB चालू नहीं)।', r && r.ok && r.cloud ? 'success' : 'error');
+  }
+  async function unpublish() {
+    const D = S.deck; if (!D || !D.pubId) return; if (!confirm('Students के Notes से यह deck हटाएँ?')) return;
+    window.state.db.notes = window.state.db.notes.filter(n => n.id !== D.pubId); await dbService.deleteDocument('notes', D.pubId); D.pubId = null; persist(); app.render(); toast('Students से हटा दिया गया।');
+  }
+  function presentNote(id) {
+    const n = (window.state.db.notes || []).find(x => x.id === id); if (!n || !n.deckJson) return;
+    try { const d = JSON.parse(n.deckJson); d.slides = arr(d.slides).map(norm); if (!d.slides.length) throw 0; present(d, 0); } catch (_) { toast('Slides खुल नहीं पाईं।', 'error'); }
+  }
+
+  /* ---------- tab UI ---------- */
+  const FIELD = 'mt-1 w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm';
+  function researchHTML() {
+    const f = S.form, t = S1(f.rtext); if (!t && !S.sources.length) return candsHTML();
+    return candsHTML() + `<div id="pp-research" class="rounded-2xl border border-sky-700/60 bg-sky-950/30 p-4 space-y-3">
+      <div class="flex items-center justify-between gap-2"><div class="text-sm font-black text-sky-300">📄 Research Result <span class="text-[11px] font-normal text-slate-400">(${t.length} अक्षर • edit कर सकते हैं)</span></div>
+      <div class="flex gap-2"><button type="button" onclick="window.app.pp.copyR()" class="px-3 py-1.5 rounded-lg text-[11px] font-black bg-slate-800 text-slate-200 border border-slate-700" style="min-height:0">Copy</button><button type="button" onclick="window.app.pp.clearR()" class="px-3 py-1.5 rounded-lg text-[11px] font-black bg-slate-800 text-rose-300 border border-slate-700" style="min-height:0">Clear</button></div></div>
+      <textarea data-k="rtext" rows="12" oninput="window.app.pp.f(this)" class="${FIELD} !text-[13px] leading-relaxed" placeholder="Research का text यहाँ दिखेगा…">${esc(f.rtext)}</textarea>
+      ${S.sources.length ? `<div><div class="text-[11px] font-black text-slate-300 mb-1">🔗 Sources (${S.sources.length})</div><div class="space-y-1">${S.sources.map((x, i) => `<a href="${esc(x.u)}" target="_blank" rel="noopener" class="block text-[11px] text-sky-300 underline truncate">${i + 1}. ${esc(x.t || x.u)}</a>`).join('')}</div></div>` : ''}
+      <button type="button" onclick="window.app.pp.generate()" class="w-full py-3 rounded-2xl font-black text-sm bg-gradient-to-r from-fuchsia-600 to-indigo-600 text-white">✨ इस research से Slides बनाओ</button>
+    </div>`;
+  }
+  function setupHTML() {
+    const f = S.form, b = S.busy;
+    return `<section class="bg-slate-900 p-5 sm:p-7 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+      <div><h3 class="text-xl font-black text-fuchsia-400"><i class="fa-solid fa-display mr-2"></i>Slides Studio — Topic → Viral PPT</h3><p class="text-xs text-slate-400 mt-1">NotebookLM जैसा: Topic लिखें, AI खुद web search करके diagram, flowchart, trick और quiz वाली slides बनाएगा। फिर edit करें और PPTX / PDF / PNG / HTML download करें।</p></div>
+      <label class="text-xs text-slate-400 block">Topic *<input data-k="topic" value="${esc(f.topic)}" oninput="window.app.pp.f(this)" placeholder="जैसे: भारत के राष्ट्रपति, Photosynthesis, Newton's Laws" class="${FIELD}"></label>
+      <div class="flex flex-wrap gap-2 items-center"><span class="text-[11px] text-slate-400 font-bold">Quick:</span>${[10, 20, 30, 50, 75, 100].map(n => `<button type="button" onclick="window.app.pp.setCount(${n})" class="px-3 py-1.5 rounded-lg text-xs font-black border ${+f.count === n ? 'bg-fuchsia-600 border-fuchsia-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-200'}" style="min-height:0">${n}</button>`).join('')}${+f.count > 40 ? '<span class="text-[10px] text-amber-300">⏱ बड़ी deck में 5-15 मिनट लग सकते हैं — page खुला रखें।</span>' : ''}</div>
+      <label class="text-xs text-slate-400 block">Deck Style<select data-k="style" onchange="window.app.pp.f(this)" class="${FIELD}">${[['standard', '📘 Standard'], ['detailed', '📚 Detailed (गहरी)'], ['revision', '⚡ Quick Revision'], ['exam', '🎯 Exam-focused (PYQ style)'], ['teach', '🧑‍🏫 Teacher / Presenter']].map(([k, n]) => `<option value="${k}" ${f.style === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+      <label class="text-xs text-slate-400 block">Notes / Source text (optional — paste करें तो AI इन्हीं से बनाएगा)<textarea data-k="notes" rows="3" oninput="window.app.pp.f(this)" placeholder="यहाँ notes, article या PDF का text paste कर सकते हैं…" class="${FIELD}">${esc(f.notes)}</textarea></label>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <label class="text-xs text-slate-400 col-span-2 md:col-span-1">Exam / Audience<input data-k="exam" value="${esc(f.exam)}" oninput="window.app.pp.f(this)" placeholder="MP Police, MPSI…" class="${FIELD}"></label>
+        <label class="text-xs text-slate-400">Language<select data-k="lang" onchange="window.app.pp.f(this)" class="${FIELD}"><option value="hi" ${f.lang === 'hi' ? 'selected' : ''}>हिंदी</option><option value="hinglish" ${f.lang === 'hinglish' ? 'selected' : ''}>Hinglish</option><option value="en" ${f.lang === 'en' ? 'selected' : ''}>English</option></select></label>
+        <label class="text-xs text-slate-400">Slides (4–${MAXS})<input data-k="count" type="number" min="4" max="${MAXS}" value="${esc(f.count)}" oninput="window.app.pp.f(this)" class="${FIELD}"></label>
+        <label class="text-xs text-slate-400">Theme<select data-k="theme" onchange="window.app.pp.f(this)" class="${FIELD}">${Object.entries(THEMES).map(([k, t]) => `<option value="${k}" ${f.theme === k ? 'selected' : ''}>${t.name}</option>`).join('')}</select></label>
+      </div>
+      <label class="text-xs text-slate-400 block">🔗 YouTube video / Website link (optional — एक line में एक link)<textarea data-k="links" rows="2" oninput="window.app.pp.f(this)" placeholder="https://www.youtube.com/watch?v=…&#10;https://example.com/article" class="${FIELD}">${esc(f.links)}</textarea><span class="block text-[10px] text-slate-500 mt-1">Video/website पढ़ने और Google search के लिए Settings में Gemini key (free) चाहिए।</span></label>
+      <div class="space-y-2"><div class="text-xs text-slate-400">📎 Files जोड़ें (PDF / TXT / MD / CSV) — NotebookLM की तरह अपने sources</div>
+        <input id="pp-file" type="file" multiple accept=".pdf,.txt,.md,.csv,.json,text/plain,application/pdf" onchange="window.app.pp.addFiles(this)" class="block w-full text-xs text-slate-300 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-slate-700 file:text-white">
+        ${S.files.map((x, i) => `<div class="flex items-center gap-2 p-2 rounded-lg bg-slate-950 border border-slate-800 text-[11px]"><span class="flex-1 truncate text-slate-200">📄 ${esc(x.name)} <span class="text-slate-500">(${x.text.length} अक्षर)</span></span><button type="button" onclick="window.app.pp.rmFile(${i})" class="text-rose-300 font-black px-2" style="min-height:0">✕</button></div>`).join('')}</div>
+      <label class="flex items-center gap-2 text-xs text-slate-300 font-bold"><input type="checkbox" data-k="research" ${f.research ? 'checked' : ''} onchange="window.app.pp.f(this)" class="w-4 h-4"> 🌐 AI खुद Google Search / Wikipedia से research करे</label>
+      <label class="flex items-center gap-2 text-xs text-slate-300 font-bold"><input type="checkbox" data-k="recheck" ${f.recheck ? 'checked' : ''} onchange="window.app.pp.f(this)" class="w-4 h-4"> 🔍 Slides बनने के बाद AI सारे facts दोबारा जाँचे</label>
+      <button type="button" onclick="window.app.pp.searchSrc()" ${b ? 'disabled' : ''} class="w-full py-3 rounded-2xl font-black text-sm bg-sky-700 hover:bg-sky-600 text-white disabled:opacity-60"><i class="fa-solid fa-magnifying-glass mr-2"></i>Topic search करो → sources चुनो</button>
+      <button type="button" onclick="window.app.pp.generate()" ${b ? 'disabled' : ''} class="w-full py-3.5 rounded-2xl font-black text-sm bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white shadow-lg disabled:opacity-60">${b ? '<i class="fa-solid fa-spinner fa-spin mr-2"></i>बना रहा है…' : '<i class="fa-solid fa-wand-magic-sparkles mr-2"></i>Slides बनाओ'}</button>
+      ${b || S.status ? `<div><div class="h-2 bg-slate-800 rounded-full overflow-hidden"><div id="pp-pbar" class="h-full bg-gradient-to-r from-fuchsia-500 to-cyan-400 transition-all" style="width:${S.pct}%"></div></div><p id="pp-status" class="text-xs text-slate-400 mt-2">${esc(S.status)}</p></div>` : ''}
+      ${researchHTML()}
+    </section>`;
+  }
+  function workspaceHTML() {
+    const d = S.deck, B = 'px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700';
+    return `<section class="bg-slate-900 p-4 sm:p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <input id="pp-dtitle" value="${esc(d.title)}" oninput="window.app.pp.dtitle(this.value)" class="flex-1 min-w-[180px] p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-bold">
+        <div class="flex gap-1.5">${Object.entries(THEMES).map(([k, t]) => `<button type="button" title="${t.name}" data-t="${k}" onclick="window.app.pp.setTheme('${k}')" class="pp-tchip ${d.theme === k ? 'on' : ''}" style="background:linear-gradient(135deg,${t.bg} 50%,${t.a} 50%)"></button>`).join('')}</div>
+        <button type="button" onclick="window.app.pp.newDeck()" class="${B}"><i class="fa-solid fa-plus mr-1"></i>नया</button>
+      </div>
+      <div class="grid lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] gap-4">
+        <div class="space-y-3 min-w-0">
+          <div id="pp-fail">${failHTML()}</div><div id="pp-stage">${stageBox(S.cur)}</div>
+          <div class="flex items-center justify-between gap-2">
+            <button type="button" onclick="window.app.pp.prev()" class="${B}"><i class="fa-solid fa-chevron-left"></i></button>
+            <span class="text-xs font-black text-slate-300 flex items-center gap-1"><input type="number" min="1" max="${d.slides.length}" placeholder="Go" onchange="window.app.pp.gotoN(this.value);this.value=''" class="w-14 p-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs"><span id="pp-count">${S.cur + 1} / ${d.slides.length}</span></span>
+            <button type="button" onclick="window.app.pp.next()" class="${B}"><i class="fa-solid fa-chevron-right"></i></button>
+            <button type="button" onclick="window.app.pp.present()" class="px-4 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white"><i class="fa-solid fa-play mr-1"></i>Present</button>
+          </div>
+          <div id="pp-thumbs" class="pp-thumbs">${thumbsHTML()}</div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="window.app.pp.move(-1)" class="${B}">⬆ ऊपर</button><button type="button" onclick="window.app.pp.move(1)" class="${B}">⬇ नीचे</button>
+            <button type="button" onclick="window.app.pp.dup()" class="${B}">⧉ Duplicate</button><button type="button" onclick="window.app.pp.delSlide()" class="${B} !text-rose-300">🗑 Delete</button>
+            <button type="button" onclick="window.app.pp.undo()" class="${B}">↩ Undo</button><button type="button" onclick="window.app.pp.redo()" class="${B}">↪ Redo</button>
+            <select id="pp-add" onchange="window.app.pp.add(this.value)" class="${B}"><option value="">＋ Slide जोड़ें…</option>${TYPES.map(t => `<option value="${t}">${TYPE_LABEL[t]}</option>`).join('')}</select>
+          </div>
+        </div>
+        <div class="space-y-4 min-w-0">
+          <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4"><div id="pp-editor">${editorHTML()}</div></div>
+          <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 space-y-2">
+            <div class="text-xs font-black text-fuchsia-300">✨ AI से इस slide को बदलो</div>
+            <input id="pp-ai-ins" placeholder='जैसे: "इसे flowchart बना दो", "trick जोड़ो", "आसान भाषा"' class="${FIELD}">
+            <button type="button" onclick="window.app.pp.aiSlide()" class="w-full py-2.5 rounded-xl text-xs font-black bg-fuchsia-600 hover:bg-fuchsia-500 text-white">Slide बदलो</button>
+            <div class="text-xs font-black text-indigo-300 pt-2">🪄 पूरा deck बदलो</div>
+            <input id="pp-deck-ins" placeholder='जैसे: "2 quiz slides और जोड़ो", "सब Hinglish में करो"' class="${FIELD}">
+            <button type="button" onclick="window.app.pp.aiDeck()" class="w-full py-2.5 rounded-xl text-xs font-black bg-indigo-600 hover:bg-indigo-500 text-white">Deck बदलो</button>
+            <button type="button" onclick="window.app.pp.aiRegen()" class="w-full py-2.5 rounded-xl text-xs font-black bg-slate-700 hover:bg-slate-600 text-white">🔄 इस Slide को दोबारा बनाओ</button>
+            <button type="button" onclick="window.app.pp.recheck()" class="w-full py-2.5 rounded-xl text-xs font-black bg-emerald-700 hover:bg-emerald-600 text-white">🔍 AI Facts Recheck (गलती जाँचो)</button>
+            <button type="button" onclick="window.app.pp.aiScripts()" class="w-full py-2.5 rounded-xl text-xs font-black bg-teal-700 hover:bg-teal-600 text-white">🎙 सभी slides के Speaker notes बनाओ</button>
+            <div class="text-xs font-black text-cyan-300 pt-2">💬 अपने Sources से सवाल पूछो</div>
+            <div class="flex gap-2"><input id="pp-q" placeholder="जैसे: सबसे important dates कौन सी हैं?" class="${FIELD} !mt-0"><button type="button" onclick="window.app.pp.askSrc()" class="px-4 rounded-xl text-xs font-black bg-cyan-600 text-white shrink-0">पूछो</button></div>
+            <div id="pp-qa" class="space-y-2">${qaHTML()}</div>
+            <button type="button" onclick="window.app.pp.aiHooks()" class="w-full py-2.5 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-400 text-slate-950">🔥 Viral hook titles सुझाओ</button>
+            <div id="pp-hooks" class="space-y-1.5">${S.hooks.map((h, i) => `<button type="button" onclick="window.app.pp.useHook(${i})" class="w-full text-left p-2.5 rounded-xl bg-slate-950 border border-slate-700 hover:border-fuchsia-500 text-xs"><b class="text-white">${esc(h.title)}</b><span class="block text-slate-400 mt-0.5">${esc(h.hook)}</span></button>`).join('')}</div>
+            <p id="pp-ai-msg" class="text-xs text-amber-300 font-bold"></p>
+          </div>
+        </div>
+      </div>
+      <div class="border-t border-slate-800 pt-4"><div class="text-xs font-black text-slate-300 mb-2">🎓 Study Tools (students के लिए engaging)</div><div class="flex flex-wrap gap-2">
+        <button type="button" onclick="window.app.pp.playQuiz()" class="px-4 py-2.5 rounded-xl text-xs font-black bg-violet-600 hover:bg-violet-500 text-white">🎮 Quiz Mode खेलो</button>
+        <button type="button" onclick="window.app.pp.flash()" class="px-4 py-2.5 rounded-xl text-xs font-black bg-pink-600 hover:bg-pink-500 text-white">🃏 Flashcards</button>
+        <button type="button" onclick="window.app.pp.studyGuide()" class="px-4 py-2.5 rounded-xl text-xs font-black bg-teal-600 hover:bg-teal-500 text-white">📖 Study Guide + FAQ</button>
+        <button type="button" onclick="window.app.pp.present()" class="px-4 py-2.5 rounded-xl text-xs font-black bg-emerald-700 hover:bg-emerald-600 text-white">🔊 Audio Narration के साथ Present</button></div>
+        <p class="text-[11px] text-slate-500 mt-2">Present में "🔊 Narrate" दबाने पर AI-style आवाज़ हर slide पढ़कर अपने आप आगे बढ़ती है (Speaker note हो तो वही पढ़ी जाती है)। Publish करने पर students को "🎮 Quiz खेलो" भी दिखेगा।</p></div>
+      <div id="pp-report">${reportHTML()}</div>
+      <div class="border-t border-slate-800 pt-4">
+        <div class="text-xs font-black text-slate-300 mb-2"><i class="fa-solid fa-download mr-1"></i>Download (16:9 • 1280×720)</div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="window.app.pp.dl('pptx')" class="px-4 py-2.5 rounded-xl text-xs font-black bg-orange-600 hover:bg-orange-500 text-white">PowerPoint (.pptx)</button>
+          <button type="button" onclick="window.app.pp.dl('pdf')" class="px-4 py-2.5 rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-500 text-white">PDF (phone पर भी चलता है)</button>
+          <button type="button" onclick="window.app.pp.dl('pdfprint')" class="px-4 py-2.5 rounded-xl text-xs font-black bg-rose-800 hover:bg-rose-700 text-white">PDF (text select • print)</button>
+          <button type="button" onclick="window.app.pp.dl('png')" class="px-4 py-2.5 rounded-xl text-xs font-black bg-sky-600 hover:bg-sky-500 text-white">PNG (यह slide)</button>
+          <button type="button" onclick="window.app.pp.dl('pngall')" class="px-4 py-2.5 rounded-xl text-xs font-black bg-sky-700 hover:bg-sky-600 text-white">PNG (सभी • ZIP)</button>
+          <button type="button" onclick="window.app.pp.dl('html')" class="px-4 py-2.5 rounded-xl text-xs font-black bg-emerald-700 hover:bg-emerald-600 text-white">Slideshow (.html)</button>
+        </div>
+        <p id="pp-dl-msg" class="text-xs text-emerald-300 font-bold mt-2"></p>
+        <div class="border-t border-slate-800 pt-4 mt-4"><div class="text-xs font-black text-slate-300 mb-2">🎓 Students के लिए</div><div class="flex flex-wrap gap-2"><button type="button" onclick="window.app.pp.publish()" class="px-4 py-2.5 rounded-xl text-xs font-black bg-fuchsia-600 hover:bg-fuchsia-500 text-white">${d.pubId ? '🔄 Update करो' : '🎓 Students को Publish करो'}</button>${d.pubId ? '<button type="button" onclick="window.app.pp.unpublish()" class="px-4 py-2.5 rounded-xl text-xs font-black bg-slate-800 text-rose-300 border border-slate-700">हटाओ</button>' : ''}</div><p class="text-[11px] text-slate-500 mt-2">Publish करने पर deck students के <b>Notes</b> section में "Slides देखें" बटन के साथ दिखेगा।</p></div>
+      </div>
+    </section>`;
+  }
+  function savedHTML() {
+    return `<section class="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-3"><div class="text-sm font-black text-slate-200"><i class="fa-solid fa-folder-open mr-2 text-amber-400"></i>Saved Decks <span class="text-[11px] text-slate-500 font-normal">(इसी browser में auto-save)</span></div>${S.decks.length ? S.decks.map(r => `<div class="flex items-center gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800"><div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">${esc(r.title)}</div><div class="text-[11px] text-slate-500">${r.n} slides • ${new Date(r.t).toLocaleDateString('en-IN')}</div></div><button type="button" onclick="window.app.pp.open('${r.id}')" class="px-3 py-2 rounded-lg text-xs font-black bg-indigo-600 text-white">Open</button><button type="button" onclick="window.app.pp.rmDeck('${r.id}')" class="px-3 py-2 rounded-lg text-xs font-black bg-slate-800 text-rose-300">🗑</button></div>`).join('') : '<p class="text-xs text-slate-500">अभी कोई deck save नहीं है।</p>'}</section>`;
+  }
+  app.renderPptTab = function () { return `<div id="pp-root" class="space-y-5">${setupHTML()}${S.deck ? workspaceHTML() : ''}${savedHTML()}</div>`; };
+
+  app.pp = Object.assign({}, ops, { edit, generate, aiSlide, aiDeck, aiHooks, present, dl, sp, addRow, rm, addCol, rmCol, setAns, undo, redo, aiRegen, aiRegenFailed, recheck: aiCheck, research: doResearch, playQuiz, flash, studyGuide, quizNote, searchSrc, extractSel, tog, selAll, addFiles, askSrc, qaToSlide, aiScripts, publish, unpublish, presentNote });
+
+  /* ---------- styles + hooks into the app ---------- */
+  const UI_CSS = `
+.pp-fit{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:14px;background:#000}
+.pp-fit>.pp-slide{position:absolute;left:0;top:0;transform-origin:0 0}
+.pp-thumbs{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 8px;scrollbar-width:thin}
+.pp-th{flex:none;width:136px;text-align:left;border:2px solid #334155;border-radius:12px;padding:3px;background:#0f172a;color:#94a3b8;font-size:10px;font-weight:800;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-height:0!important}
+.pp-th.on{border-color:#e879f9;color:#f5d0fe}
+.pp-th .pp-fit{border-radius:8px;pointer-events:none}
+.pp-ov{position:fixed;inset:0;z-index:99998;background:rgba(2,6,23,.97);overflow:auto;padding:14px;color:#fff;font-family:'Noto Sans Devanagari','Inter',system-ui,sans-serif}
+.pp-qwrap{max-width:640px;margin:0 auto;padding-bottom:40px}
+.pp-qtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.pp-qtop button{background:#1e293b;color:#fff;border:1px solid #475569;border-radius:10px;padding:6px 12px;font-weight:800;min-height:0!important}
+.pp-qbar{height:8px;background:#1e293b;border-radius:99px;overflow:hidden}.pp-qbar i{display:block;height:100%;background:linear-gradient(90deg,#d946ef,#22d3ee);transition:width .3s}
+.pp-qmeta{font-size:12px;color:#94a3b8;margin:8px 0;font-weight:700}
+.pp-qq{font-size:20px;font-weight:900;margin:10px 0 14px;line-height:1.35}
+.pp-ob{display:block;width:100%;text-align:left;margin-top:8px;padding:13px 14px;border-radius:14px;background:#1e293b;color:#fff;border:2px solid #334155;font-weight:700;font-size:15px;min-height:0!important}
+.pp-ob.ok{background:#065f46;border-color:#34d399}.pp-ob.bad{background:#7f1d1d;border-color:#f87171}
+.pp-fb{margin-top:12px;padding:12px;border-radius:12px;font-weight:800;font-size:14px}.pp-fb.g{background:#064e3b;color:#a7f3d0}.pp-fb.r{background:#4c0519;color:#fecdd3}
+.pp-rv{margin-top:8px;padding:10px;background:#0f172a;border:1px solid #334155;border-radius:12px;font-size:13px}
+.pp-fc{margin-top:12px;min-height:240px;display:flex;align-items:center;justify-content:center;text-align:center;padding:22px;border-radius:22px;background:linear-gradient(135deg,#4c1d95,#1e3a8a);font-size:22px;font-weight:800;cursor:pointer;line-height:1.4;border:2px solid #7c3aed}
+.pp-fc.back{background:linear-gradient(135deg,#065f46,#0e7490);border-color:#34d399}.pp-fc small{font-size:11px;opacity:.7;font-weight:700}
+.pp-guide{white-space:pre-wrap;font-size:14px;line-height:1.7;background:#0f172a;border:1px solid #334155;border-radius:14px;padding:14px;margin-top:10px}
+.pp-ph{background:#1e293b;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:20px}
+.pp-th span{display:block;padding:3px 4px 1px;overflow:hidden;text-overflow:ellipsis}
+.pp-tchip{width:30px;height:30px;border-radius:10px;border:2px solid #475569;min-height:0!important;padding:0}
+.pp-tchip.on{border-color:#fff;box-shadow:0 0 0 2px #e879f9}
+#pp-present{position:fixed;inset:0;z-index:99999;background:#000;cursor:pointer}
+.pp-pwrap .pp-slide{animation:ppIn .5s ease both}
+@keyframes ppIn{from{opacity:0;filter:blur(8px)}to{opacity:1;filter:none}}
+.pp-pwrap{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:center center}
+.pp-pui{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;align-items:center;gap:10px;opacity:.5;transition:opacity .2s;z-index:2}
+.pp-pui:hover,#pp-present:hover .pp-pui{opacity:1}
+.pp-pui button{background:rgba(30,41,59,.92);color:#fff;border:1px solid #475569;border-radius:12px;padding:8px 16px;font-weight:800;font-size:14px;min-height:0!important}
+.pp-pui span{color:#fff;font-weight:800;font-size:13px;background:rgba(0,0,0,.55);padding:6px 12px;border-radius:10px}
+`;
+  if (!document.getElementById('pp-css')) { const st = document.createElement('style'); st.id = 'pp-css'; st.textContent = CSS + UI_CSS; document.head.appendChild(st); }
+  const prevAR = app.afterRender;
+  app.afterRender = function () {
+    prevAR.call(this);
+    try { if (window.state.currentView === 'admin-dashboard' && window.state.adminTab === 'ppt') { fitAll(); document.querySelector('#pp-thumbs .on')?.scrollIntoView({ inline: 'center', block: 'nearest' }); lazyThumbs(); } } catch (_) { }
+  };
+  window.addEventListener('resize', () => { try { if (window.state.adminTab === 'ppt') fitAll(); } catch (_) { } });
+})();
+
 </script>
 
 </body>
