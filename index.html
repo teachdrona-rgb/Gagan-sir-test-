@@ -30,6 +30,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
     <!-- Canvas Confetti for Celebrations -->
     <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -1868,12 +1869,12 @@
                                 ['👥 Students', [['students','Students','fa-users'],['results','Results','fa-square-poll-vertical']]],
                                 ['🤖 Test बनाएँ', [['ai-gen','AI Test','fa-robot'],['pdf-test','PDF/Text→Test','fa-file-pdf'],['pyq-session','PYQ Mock','fa-calendar-days'],['bulk-image-test','Photo→Test','fa-image'],['link-test','Link→Test','fa-link'],['manual-builder','Manual','fa-pen-to-square']]],
                                 ['🗂️ Manage', [['review','Review','fa-clipboard-check'],['tests-mgr','Tests','fa-list-check'],['batches','Batches','fa-layer-group'],['notes','Notes','fa-file-pdf']]],
-                                ['⚙️ Extra', [['ppt','Slides (PPT)','fa-display'],['ads','Ads (AdSense)','fa-rectangle-ad'],['settings','Settings (API)','fa-gear']]]
+                                ['⚙️ Extra', [['ppt','Slides (PPT)','fa-display'],['insta','Instagram Post','fa-brands fa-instagram'],['ads','Ads (AdSense)','fa-rectangle-ad'],['settings','Settings (API)','fa-gear']]]
                             ];
                             const all = groups.flatMap(g => g[1]), cur = all.find(t => t[0] === window.state.adminTab) || all[0];
-                            const tile = ([id,label,icon]) => `<button ${window.state.adminTab===id?'data-active="1"':''} onclick="window.app.setAdminTab('${id}')" class="admin-tool-tile"><i class="fa-solid ${icon}"></i><span>${label}</span></button>`;
+                            const tile = ([id,label,icon]) => `<button ${window.state.adminTab===id?'data-active="1"':''} onclick="window.app.setAdminTab('${id}')" class="admin-tool-tile"><i class="${icon.startsWith('fa-brands')?icon:'fa-solid '+icon}"></i><span>${label}</span></button>`;
                             return `<div class="admin-tabbar admin-toolnav">
-                                <button type="button" onclick="window.app.toggleAdminTools()" class="admin-tool-toggle lg:hidden"><span class="flex items-center gap-2"><i class="fa-solid ${cur[2]}"></i>${cur[1]}</span><span class="text-xs font-bold opacity-80">सभी Tools <i class="fa-solid fa-chevron-down ml-1"></i></span></button>
+                                <button type="button" onclick="window.app.toggleAdminTools()" class="admin-tool-toggle lg:hidden"><span class="flex items-center gap-2"><i class="${cur[2].startsWith('fa-brands')?cur[2]:'fa-solid '+cur[2]}"></i>${cur[1]}</span><span class="text-xs font-bold opacity-80">सभी Tools <i class="fa-solid fa-chevron-down ml-1"></i></span></button>
                                 <div id="admin-tools-panel" class="hidden lg:block">${groups.map(([gl, items]) => `<div class="admin-tool-group"><div class="admin-tool-group-title">${gl}</div><div class="admin-tool-grid">${items.map(tile).join('')}</div></div>`).join('')}</div>
                             </div>`;
                         })()}
@@ -1889,6 +1890,7 @@
                 if (window.state.adminTab === 'pdf-test') return this.renderPdfTestTab();
                 if (window.state.adminTab === 'ads') return this.renderAdsTab();
                 if (window.state.adminTab === 'ppt') return this.renderPptTab();
+                if (window.state.adminTab === 'insta') return this.renderIgTab();
 
                 if (window.state.adminTab === 'settings') {
                     const displayConfig = getStoredFirebaseConfig() || {};
@@ -5955,6 +5957,271 @@ Answer Key
   window.addEventListener('resize', () => { try { if (window.state.adminTab === 'ppt') fitAll(); } catch (_) { } });
 })();
 
+</script>
+
+<script>
+/* ===== Instagram Auto-Post Tool (Admin → Instagram) ===== */
+(function () {
+  const app = window.app, $ = id => document.getElementById(id), E = escHtml;
+  const S = { subj: 'Mix', fmt: 'fact', lang: 'hinglish', tag: '', topics: [], topic: '', post: null, imgs: [], caption: '', theme: 0, busy: '', msg: '' };
+  const THEMES = [['#1e1b4b', '#4338ca', '#fbbf24'], ['#064e3b', '#0f766e', '#fde68a'], ['#7c2d12', '#be123c', '#ffffff']];
+  const LS = k => { try { return localStorage.getItem(k) || ''; } catch (_) { return ''; } };
+  const LSet = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };
+  const toast = (m, t) => app.showToast && app.showToast(m, t);
+  const readOpts = () => { const a = $('ig-subj'), b = $('ig-fmt'), c = $('ig-lang'); if (a) S.subj = a.value; if (b) S.fmt = b.value; if (c) S.lang = c.value; };
+  const paint = () => { const r = $('ig-root'); if (r) r.innerHTML = html(); };
+  const setMsg = m => { S.msg = m; const e = $('ig-msg'); if (e) e.textContent = m; };
+
+  async function ai(prompt) {
+    const order = app.getProviderOrder(getAIProvider());
+    if (!order.length) throw new Error('AI key नहीं मिली — Settings में key Save करें।');
+    let last;
+    for (const pv of order) { try { return await app.callAIProvider(pv, prompt, { json: true, timeout: 90000, maxTokens: 4000, temperature: 0.5, system: 'You are an expert Indian educator and Instagram content creator. Return ONLY valid JSON, no markdown fences.' }); } catch (e) { last = e; } }
+    throw last;
+  }
+  const pj = raw => { const s = String(raw).replace(/```json|```/g, '').trim(); const m = s.match(/[\[{][\s\S]*[\]}]/); return JSON.parse(m ? m[0] : s); };
+
+  async function findTopics() {
+    readOpts(); S.busy = 'topics'; setMsg('⏳ Topics ढूँढ रहे हैं…'); let trends = [];
+    try { const r = await fetch('https://trends.google.com/trending/rss?geo=IN'); const x = new DOMParser().parseFromString(await r.text(), 'text/xml'); trends = [...x.querySelectorAll('item > title')].map(n => n.textContent).slice(0, 15); } catch (_) {}
+    try {
+      const p = `Aaj ki date: ${new Date().toDateString()}. ${trends.length ? 'India ke Google trending searches: ' + trends.join(', ') + '. In me se jo education/exam/GK/science se jude ho unka educational angle nikalo, aur ' : ''}Competitive exam prep (SSC, Railway, UPSC, Banking, State exams) ke liye ${S.subj === 'Mix' ? 'alag-alag subjects (GK, GS, Polity, History, Geography, Science, Math, Reasoning, English, Current Affairs) se' : S.subj + ' subject se'} 10 high-value educational Instagram topics suggest karo: exam me baar-baar puchhe jaane wale important facts, PYQ-based concepts, shortcut tricks. Entertainment/gossip/politics-opinion bilkul nahi. JSON array of strings (Hindi/Hinglish), har topic max 10 words.`;
+      S.topics = pj(await ai(p)).slice(0, 10); setMsg(trends.length ? '✅ Live Google Trends + AI se topics mile.' : '⚠️ Live trends browser me block hain — AI ke topics hain (real-time nahi). Topic verify kar lein.');
+    } catch (e) { setMsg('❌ ' + e.message); }
+    S.busy = ''; paint();
+  }
+
+  async function generate() {
+    readOpts(); const t = ($('ig-topic') || {}).value || S.topic; if (!t.trim()) return toast('पहले topic लिखें या चुनें।', 'error');
+    S.topic = t; S.busy = 'gen'; setMsg('⏳ Post बन रही है…'); paint();
+    try {
+      const FM = {
+        fact: 'FORMAT = Important Facts: 6 slides, har slide ek exam-relevant pakka fact (kya, kab, kaun, kyun) + yaad rakhne ki 1 line.',
+        pyq: 'FORMAT = PYQ-style Quiz: 6 slides = 3 MCQ. Har MCQ ke 2 slides: (a) slide title "Q1" body me sawal + 4 options A) B) C) D) alag lines me; (b) slide title "Q1 उत्तर" body me sahi option + 1-2 line explanation. Sawal real exam pattern ke hon. Exam ka naam/saal tabhi likho jab 100% pakka ho, warna "PYQ-Style" likho.',
+        trick: 'FORMAT = Shortcut Trick: slides me step-by-step: concept, formula/trick, solved example 1, solved example 2, common mistake, practice question (answer ke saath). Calculation double-check karke likho.'
+      }[S.fmt];
+      const p = `Topic: "${t}". Subject: ${S.subj === 'Mix' ? 'topic ke hisaab se' : S.subj}. Target: SSC/Railway/UPSC/Banking/State competitive exam students. Educational Instagram carousel banao (Language: ${LANGS[S.lang || 'hinglish']}).
+${FM}
+STRICT RULES: sirf verified, exam-useful facts; guess ya ambiguous fact mat likho; maths/reasoning ke answers khud solve karke verify karo; koi fake statistic ya fake PYQ year mat banao. Jis fact/date/number par thoda bhi shak ho use "verify" list me daalo.
+JSON: {"hook":"cover title max 10 words","slides":[{"title":"max 6 words","body":"max 45 words, \\n se lines alag kar sakte ho"} x 6],"cta":"last slide line","caption":"educational caption 3-4 lines, exam relevance batao","hashtags":["15 subject/exam related tags without #"],"reel_script":"30 sec voiceover","source":"authentic source ka naam (NCERT/PIB/Constitution/standard book)","verify":["facts/numbers jinhe admin ko publish se pehle check karna chahiye"]}`;
+      S.post = pj(await ai(p)); S.tag = serTag(); S.caption = S.post.caption + '\n\n' + (LS('ig_cta') || 'Free tests के लिए bio का link खोलें 👉') + '\n\n' + (S.post.hashtags || []).map(h => '#' + String(h).replace(/^#/, '')).join(' ');
+      await renderSlides(); setMsg('✅ तैयार! Preview देखकर approve करें।');
+    } catch (e) { setMsg('❌ ' + e.message); }
+    S.busy = ''; paint();
+  }
+
+  function wrap(x, t, w) { const out = []; String(t).split('\n').forEach(par => { let l = ''; par.split(' ').forEach(wd => { const n = l ? l + ' ' + wd : wd; if (x.measureText(n).width > w && l) { out.push(l); l = wd; } else l = n; }); out.push(l); }); return out; }
+  function draw(title, body, i, n, H = 1350, cv) {
+    const c = document.createElement('canvas'); c.width = 1080; c.height = H; const x = c.getContext('2d'), [a, b, acc] = THEMES[S.theme];
+    const g = x.createLinearGradient(0, 0, 1080, H); g.addColorStop(0, a); g.addColorStop(1, b); x.fillStyle = g; x.fillRect(0, 0, 1080, H); x.translate(0, (H - 1350) / 2);
+    x.fillStyle = acc; x.fillRect(80, 110, 120, 10); x.textBaseline = 'top';
+    const F = '"Noto Sans Devanagari","Mukta",system-ui,sans-serif';
+    const block = (t, size, wt, col, y, maxH) => { let fs = size, ls; for (; fs > 28; fs -= 4) { x.font = `${wt} ${fs}px ${F}`; ls = wrap(x, t, 920); if (ls.length * fs * 1.35 <= maxH) break; } x.font = `${wt} ${fs}px ${F}`; x.fillStyle = col; ls.forEach((l, k) => x.fillText(l, 80, y + k * fs * 1.35)); return y + ls.length * fs * 1.35; };
+    if (i === 0) { block(title, 96, '800', '#fff', 380, 700); if (S.tag) { x.font = `700 40px ${F}`; x.fillStyle = acc; x.fillText(S.tag, 80, 270); } }
+    else { const y = block(title, 72, '800', acc, 200, 260); block(body, 54, '500', '#fff', y + 50, 800); }
+    x.font = `600 30px ${F}`; x.fillStyle = 'rgba(255,255,255,.7)'; x.fillText((LS('ig_handle') || 'GLO Academy'), 80, 1230); x.textAlign = 'right'; x.fillText(`${i + 1}/${n}`, 1000, 1230);
+    return cv ? c : new Promise(r => c.toBlob(bl => r({ blob: bl, url: URL.createObjectURL(bl) }), 'image/jpeg', 0.92));
+  }
+  async function renderSlides() {
+    if (!S.post) return; S.imgs.forEach(m => URL.revokeObjectURL(m.url)); const sl = [{ title: S.post.hook, body: '' }, ...(S.post.slides || []), { title: S.post.cta || 'Follow करें!', body: (S.post.source ? 'स्रोत: ' + S.post.source + '\n' : '') + 'Save करें और दोस्तों को share करें 📌' }];
+    S.sl = sl; S.imgs = []; for (let i = 0; i < sl.length; i++) S.imgs.push(await draw(sl[i].title, sl[i].body, i, sl.length));
+  }
+
+  const gp = async (path, params, method = 'POST') => {
+    const q = new URLSearchParams({ ...params, access_token: LS('ig_tok') || safeSessionGet('ig_tok') }), u = 'https://graph.facebook.com/' + path;
+    const r = await fetch(method === 'GET' ? u + '?' + q : u, { method, body: method === 'GET' ? undefined : q }), d = await r.json();
+    if (!r.ok || d.error) throw new Error((d.error && d.error.message) || 'HTTP ' + r.status); return d;
+  };
+  async function publish(auto) {
+    const uid = LS('ig_uid'); if (!uid || !(LS('ig_tok') || safeSessionGet('ig_tok'))) return toast('पहले Instagram ID और Token Save करें।', 'error');
+    if (!S.imgs.length) return; if (!auto && !confirm('यह post Instagram पर LIVE हो जाएगी। Publish करें?')) return;
+    S.busy = 'pub'; paint();
+    try {
+      if (!firebase.storage) throw new Error('Firebase Storage script load nahi hui — page refresh karein.');
+      const urls = []; for (let i = 0; i < S.imgs.length; i++) { setMsg(`⏳ Upload ${i + 1}/${S.imgs.length}…`); const ref = firebase.storage().ref(`instagram/${Date.now()}_${i}.jpg`); await ref.put(S.imgs[i].blob, { contentType: 'image/jpeg' }); urls.push(await ref.getDownloadURL()); }
+      const cap = ($('ig-cap') || {}).value || S.caption; let cid;
+      if (urls.length === 1) cid = (await gp(uid + '/media', { image_url: urls[0], caption: cap })).id;
+      else { const kids = []; for (const u of urls) kids.push((await gp(uid + '/media', { image_url: u, is_carousel_item: 'true' })).id); cid = (await gp(uid + '/media', { media_type: 'CAROUSEL', children: kids.join(','), caption: cap })).id; }
+      setMsg('⏳ Instagram process kar raha hai…');
+      for (let k = 0; k < 20; k++) { const s = await gp(cid, { fields: 'status_code' }, 'GET'); if (s.status_code === 'FINISHED') break; if (s.status_code === 'ERROR') throw new Error('Instagram ne media reject kiya.'); await new Promise(r => setTimeout(r, 2500)); }
+      const pr = await gp(uid + '/media_publish', { creation_id: cid }); S.ok = true; afterPost(pr.id, 'carousel'); setMsg('🎉 Instagram पर post LIVE हो गई!'); toast('Instagram पर post हो गई 🎉');
+    } catch (e) { setMsg('❌ ' + e.message); }
+    S.busy = ''; const m = S.msg; paint(); setMsg(m);
+  }
+
+  async function tts(ac, text) {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent?key=' + encodeURIComponent(getAIKey('gemini')), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: 'Say in a clear, energetic Hindi teacher voice: ' + text }] }], generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: ['Kore', 'Puck'][(+LS('ig_vc') || 0) % 2] } } } } }) }), d = await r.json();
+    if (!r.ok) throw new Error((d.error && d.error.message) || r.status);
+    const bin = atob(d.candidates[0].content.parts.find(q => q.inlineData).inlineData.data), n = bin.length >> 1, buf = ac.createBuffer(1, n, 24000), ch = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) { let v = bin.charCodeAt(2 * i) | (bin.charCodeAt(2 * i + 1) << 8); if (v >= 32768) v -= 65536; ch[i] = v / 32768; } return buf;
+  }
+  /* ---- Reel (9:16 mp4) ---- */
+  async function makeReel() {
+    if (!S.sl) return; if (!window.MediaRecorder) return toast('यह browser video record नहीं कर सकता — Chrome use करें।', 'error');
+    S.busy = 'reel'; paint(); setMsg('⏳ Reel बन रही है (~35 sec) — tab खुला रखें, दूसरे app में न जाएँ…');
+    try {
+      const cs = []; for (let i = 0; i < S.sl.length; i++) cs.push(await draw(S.sl[i].title, S.sl[i].body, i, S.sl.length, 1920, true));
+      const c = document.createElement('canvas'); c.width = 1080; c.height = 1920; const x = c.getContext('2d'), stream = c.captureStream(30);
+      const f = $('ig-aud') && $('ig-aud').files[0], wantVo = $('ig-vo') ? $('ig-vo').checked : true; let ac, srcs = [], DUR = S.sl.map(() => 4000);
+      if (f || (wantVo && getAIKey('gemini'))) {
+        ac = new (window.AudioContext || window.webkitAudioContext)(); const d = ac.createMediaStreamDestination();
+        if (wantVo && getAIKey('gemini')) { try { setMsg('🎙️ Voiceover बन रहा है…'); const vb = await tts(ac, S.sl.map(z => z.title + '. ' + String(z.body).replace(/\n/g, ' ') + (/^Q\d+$/.test(z.title) ? ' सोचिए, जवाब अगली स्लाइड में।' : '')).join(' ')), v = ac.createBufferSource(), W = S.sl.map(z => (z.title + ' ' + z.body).split(/\s+/).length), sum = W.reduce((a, b) => a + b, 0), tot = vb.duration * 1000 + 800; v.buffer = vb; v.connect(d); srcs.push(v); DUR = W.map(w => Math.max(1800, tot * w / sum)); } catch (e) { toast('Voiceover नहीं बना: ' + e.message, 'error'); } }
+        if (f) { const mb = await ac.decodeAudioData(await f.arrayBuffer()), m = ac.createBufferSource(), g = ac.createGain(); m.buffer = mb; m.loop = true; g.gain.value = srcs.length ? 0.15 : 1; m.connect(g); g.connect(d); srcs.push(m); }
+        if (srcs.length) stream.addTrack(d.stream.getAudioTracks()[0]);
+      }
+      const mime = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m));
+      const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 5000000 }), ch = []; rec.ondataavailable = e => e.data.size && ch.push(e.data);
+      const done = new Promise(r => rec.onstop = r); rec.start(); srcs.forEach(z => z.start());
+      for (let i = 0; i < cs.length; i++) { const t0 = performance.now(), SEC = DUR[i]; await new Promise(res => { const step = now => { const t = now - t0; x.fillStyle = '#000'; x.fillRect(0, 0, 1080, 1920); x.save(); x.globalAlpha = Math.min(1, t / 400); const z = 1 + 0.05 * t / SEC; x.translate(540, 960); x.scale(z, z); x.drawImage(cs[i], -540, -960); x.restore(); t < SEC ? requestAnimationFrame(step) : res(); }; requestAnimationFrame(step); }); }
+      rec.stop(); srcs.forEach(z => { try { z.stop(); } catch (_) {} }); await done; if (ac) ac.close();
+      const blob = new Blob(ch, { type: mime.split(';')[0] }); if (S.vid) URL.revokeObjectURL(S.vid.url); S.vid = { blob, url: URL.createObjectURL(blob), mp4: /mp4/.test(mime) };
+      setMsg(S.vid.mp4 ? '✅ Reel तैयार! Preview देखें।' : '⚠️ Reel बनी पर WebM है — Instagram को MP4 चाहिए। Chrome (नया) में बनाएँ, या Download करके convert करें।');
+    } catch (e) { setMsg('❌ ' + e.message); }
+    S.busy = ''; const m = S.msg; paint(); setMsg(m);
+  }
+  async function publishReel(auto) {
+    const uid = LS('ig_uid'); if (!uid || !(LS('ig_tok') || safeSessionGet('ig_tok'))) return toast('पहले Instagram ID और Token Save करें।', 'error');
+    if (!S.vid || !S.vid.mp4) return toast('MP4 reel चाहिए।', 'error'); if (!auto && !confirm('यह Reel Instagram पर LIVE हो जाएगी। Publish करें?')) return;
+    S.busy = 'pubreel'; paint();
+    try {
+      if (!firebase.storage) throw new Error('Firebase Storage script load nahi hui — page refresh karein.');
+      setMsg('⏳ Video upload हो रहा है…'); const ref = firebase.storage().ref(`instagram/${Date.now()}_reel.mp4`); await ref.put(S.vid.blob, { contentType: 'video/mp4' }); const url = await ref.getDownloadURL();
+      const cap = ($('ig-cap') || {}).value || S.caption, cid = (await gp(uid + '/media', { media_type: 'REELS', video_url: url, caption: cap, share_to_feed: 'true' })).id;
+      setMsg('⏳ Instagram video process कर रहा है (1-2 min)…');
+      for (let k = 0; k < 60; k++) { const s = await gp(cid, { fields: 'status_code' }, 'GET'); if (s.status_code === 'FINISHED') break; if (s.status_code === 'ERROR' || s.status_code === 'EXPIRED') throw new Error('Instagram ne reel reject kiya.'); await new Promise(r => setTimeout(r, 3000)); }
+      const pr = await gp(uid + '/media_publish', { creation_id: cid }); S.ok = true; afterPost(pr.id, 'reel'); setMsg('🎉 Reel Instagram पर LIVE हो गई!'); toast('Reel post हो गई 🎉');
+    } catch (e) { setMsg('❌ ' + e.message); }
+    S.busy = ''; const m = S.msg; paint(); setMsg(m);
+  }
+
+  /* ---- Auto mode: AI topic -> post -> fact-check -> publish, on a schedule ---- */
+  const jget = (k, d) => { try { return JSON.parse(LS(k)) || d; } catch (_) { return d; } };
+  const A = () => Object.assign({ on: false, times: '09:00,18:00', subj: 'Weekly Plan', kind: 'carousel', strict: true, done: [] }, jget('ig_auto', {}));
+  const logs = () => jget('ig_log', []);
+  const log = m => { const l = logs(); l.unshift(new Date().toLocaleString('en-IN') + ' — ' + m); LSet('ig_log', JSON.stringify(l.slice(0, 15))); const e = $('ig-log'); if (e) e.innerHTML = l.slice(0, 15).map(x => '<li>' + E(x) + '</li>').join(''); notify(m); };
+  let running = false;
+  async function autoRun(a) {
+    if (running || S.busy) return; running = true; let t = '';
+    try {
+      const SUBJ = ['GK', 'GS', 'Polity', 'History', 'Geography', 'Science', 'Math', 'Reasoning', 'English', 'Current Affairs'], hist = jget('ig_hist', []);
+      const PLAN = [{ s: 'Mix', f: 'pyq', rev: 1 }, { s: 'GK' }, { s: 'Math', f: 'trick' }, { s: 'Reasoning', f: 'trick' }, { s: 'Polity' }, { s: 'Mix', f: 'pyq' }, { s: 'Current Affairs' }], pl = a.subj === 'Weekly Plan' ? PLAN[new Date().getDay()] : null, pickS = v => v === 'Mix' ? SUBJ[Math.floor(Math.random() * SUBJ.length)] : v;
+      S.subj = pickS(pl ? pl.s : a.subj); const fm = /Math|Reasoning/.test(S.subj) ? ['trick', 'pyq'] : ['fact', 'pyq']; S.fmt = (pl && pl.f) || fm[Math.floor(Math.random() * 2)]; const top = jget('ig_top', []);
+      t = (pl && pl.rev) ? 'Weekly Revision: ' + (hist.slice(0, 7).join(', ') || 'important topics') : pj(await ai(`${S.subj} subject ka competitive exam (SSC/Railway/UPSC/Banking) ke liye 1 high-value, baar-baar puchha jaane wala topic do. Ye repeat mat karo: ${hist.slice(0, 30).join(', ') || 'koi nahi'}.${top.length ? ' In posts par achha engagement mila, inhi jaisa angle lo: ' + top.join(' | ') + '.' : ''} JSON: {"topic":"max 10 words"}`)).topic;
+      S.topic = t; S.post = null; S.vid = null; await generate(); if (!S.post) throw new Error(S.msg);
+      if (a.strict) {
+        const r = pj(await ai('Neeche ek educational Instagram post hai. Strict fact-checker ki tarah har fact, date, number, MCQ answer aur calculation check karo. Zara bhi galat, ambiguous ya unverifiable ho to ok=false. JSON: {"ok":true,"issues":["..."]}\n' + JSON.stringify({ slides: S.post.slides, caption: S.post.caption })));
+        if (!r.ok || (r.issues || []).length) { log('⛔ Skip (fact-check fail): ' + t + ' — ' + (r.issues || []).join('; ').slice(0, 160)); return; }
+      }
+      let kind = a.kind === 'alternate' ? (hist.length % 2 ? 'reel' : 'carousel') : a.kind; if (kind === 'reel' && document.hidden) kind = 'carousel';
+      S.ok = false;
+      if (kind === 'reel') { await makeReel(); if (S.vid && S.vid.mp4) await publishReel(true); else { kind = 'carousel'; await publish(true); } } else await publish(true);
+      if (S.ok) { hist.unshift(t); LSet('ig_hist', JSON.stringify(hist.slice(0, 50))); log('✅ Posted (' + kind + '): ' + t); } else log('❌ Fail: ' + S.msg + ' — ' + t);
+    } catch (e) { log('❌ ' + e.message + (t ? ' — ' + t : '')); }
+    running = false;
+  }
+  function tick() {
+    const a = A(); if (!a.on) return; const n = new Date(), day = n.toLocaleDateString('en-CA'), mins = n.getHours() * 60 + n.getMinutes();
+    for (const tm of a.times.split(',').map(x => x.trim()).filter(Boolean)) {
+      const [h, m] = tm.split(':').map(Number); if (isNaN(h) || isNaN(m)) continue; const slot = day + ' ' + tm, d = mins - (h * 60 + m);
+      if (d >= 0 && d <= 30 && !a.done.includes(slot)) { a.done = [...a.done.filter(x => x.startsWith(day)), slot]; LSet('ig_auto', JSON.stringify(a)); autoRun(a); return; }
+    }
+  }
+  if (!window.__igTimer) window.__igTimer = setInterval(tick, 30000);
+
+  /* ---- Extras: series, Telegram, post record, insights, comment replies ---- */
+  const LANGS = { hinglish: 'Hinglish, simple', hindi: 'shuddh Hindi (Devanagari), simple', english: 'simple English' }, NAMES = { fact: 'Facts', pyq: 'Quiz', trick: 'Trick' };
+  const serTag = () => (S.subj === 'Mix' ? 'Daily' : S.subj) + ' ' + NAMES[S.fmt] + ' #' + ((jget('ig_ser', {})[S.subj + '|' + S.fmt] || 0) + 1);
+  async function notify(m) { const t = LS('ig_tgt'), c = LS('ig_tgc'); if (!t || !c) return; try { await fetch('https://api.telegram.org/bot' + t + '/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: c, text: m }) }); } catch (_) {} }
+  async function afterPost(id, kind) {
+    const sr = jget('ig_ser', {}), k = S.subj + '|' + S.fmt; sr[k] = (sr[k] || 0) + 1; LSet('ig_ser', JSON.stringify(sr)); LSet('ig_vc', String((+LS('ig_vc') || 0) + 1));
+    let link = ''; try { link = (await gp(id, { fields: 'permalink' }, 'GET')).permalink || ''; } catch (_) {}
+    const doc = { id, ts: Date.now(), topic: S.topic, subj: S.subj, fmt: S.fmt, kind, link, src: 'browser' }, l = jget('ig_posts', []); l.unshift(doc); LSet('ig_posts', JSON.stringify(l.slice(0, 50)));
+    try { dbService.saveDocument('ig_posts', id, doc, { silent: true }); } catch (_) {}
+    notify('✅ Instagram ' + kind + ' post hui: ' + S.topic + (link ? '\n' + link : ''));
+  }
+  async function showRec() {
+    const o = $('ig-out'); let l = jget('ig_posts', []);
+    try { const q = await firebase.firestore().collection('ig_posts').orderBy('ts', 'desc').limit(20).get(), ids = new Set(l.map(x => x.id)); l = [...l, ...q.docs.map(d => d.data()).filter(x => !ids.has(x.id))].sort((a, b) => b.ts - a.ts); } catch (_) {}
+    o.innerHTML = l.length ? l.slice(0, 30).map(r => `<div class="bg-slate-950 border border-slate-800 rounded-xl p-2"><b>${E(r.topic)}</b><br>${new Date(r.ts).toLocaleString('en-IN')} · ${E(r.kind)} · ${E(r.subj)} ${r.link ? `· <a class="text-sky-400 underline" href="${E(r.link)}" target="_blank" rel="noopener">Instagram पर खोलें</a>` : ''}</div>`).join('') + '<p class="text-[11px] text-slate-500">Post गलत लगे तो Instagram app में खोलकर Delete करें (API से delete नहीं हो सकता).</p>' : 'अभी कोई record नहीं।';
+  }
+  async function loadInsights() {
+    const o = $('ig-out'); o.textContent = '⏳ Insights आ रहे हैं…';
+    try {
+      const m = (await gp(LS('ig_uid') + '/media', { fields: 'id,caption,permalink,timestamp', limit: '12' }, 'GET')).data || [], rows = [];
+      for (const p of m) { try { const v = {}; (await gp(p.id + '/insights', { metric: 'reach,saved,shares,likes,comments' }, 'GET')).data.forEach(x => v[x.name] = (x.values && x.values[0] && x.values[0].value) || 0); rows.push({ ...p, v, score: (v.saved || 0) * 3 + (v.shares || 0) * 3 + (v.comments || 0) * 2 + (v.likes || 0) }); } catch (_) {} }
+      if (!rows.length) { o.textContent = 'Insights नहीं मिले (instagram_manage_insights permission चाहिए).'; return; }
+      rows.sort((a, b) => b.score - a.score); LSet('ig_top', JSON.stringify(rows.slice(0, 4).map(r => String(r.caption || '').split('\n')[0].slice(0, 90))));
+      o.innerHTML = '<p class="text-emerald-400 font-bold">Top posts (AI अब इन्हीं जैसी topics ज़्यादा बनाएगा):</p>' + rows.map(r => `<div class="bg-slate-950 border border-slate-800 rounded-xl p-2"><a class="text-sky-400 underline" href="${E(r.permalink)}" target="_blank" rel="noopener">${E(String(r.caption || '').split('\n')[0].slice(0, 70))}</a><br>👁 ${r.v.reach || 0} · 💾 ${r.v.saved || 0} · ↗️ ${r.v.shares || 0} · ❤️ ${r.v.likes || 0} · 💬 ${r.v.comments || 0}</div>`).join('');
+    } catch (e) { o.textContent = '❌ ' + e.message; }
+  }
+  async function loadComments() {
+    const o = $('ig-out'); o.textContent = '⏳ Comments आ रहे हैं…';
+    try {
+      const media = (await gp(LS('ig_uid') + '/media', { fields: 'id', limit: '5' }, 'GET')).data || [], cm = [];
+      for (const p of media) { try { ((await gp(p.id + '/comments', { fields: 'id,text,username', limit: '5' }, 'GET')).data || []).forEach(c => cm.push(c)); } catch (_) {} }
+      if (!cm.length) { o.textContent = 'कोई comment नहीं मिला।'; return; }
+      const dr = pj(await ai('Neeche Instagram comments hain (exam-prep educational page). Har comment ka chhota, friendly, sahi jawab Hinglish me likho; jawab pakka na pata ho to "Hum details jald share karenge 🙏" likho. JSON array: [{"id":"..","reply":".."}]\n' + JSON.stringify(cm.slice(0, 10).map(c => ({ id: c.id, text: c.text })))));
+      S.cm = cm.slice(0, 10).map(c => ({ ...c, reply: (dr.find(d => d.id === c.id) || {}).reply || '' }));
+      o.innerHTML = S.cm.map((c, i) => `<div class="bg-slate-950 border border-slate-800 rounded-xl p-2 space-y-1"><div><b>@${E(c.username || '')}</b>: ${E(c.text)}</div><textarea id="ig-r-${i}" rows="2" class="w-full px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs">${E(c.reply)}</textarea><button class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold" onclick="igTool.reply(${i})">Reply भेजें</button></div>`).join('');
+    } catch (e) { o.textContent = '❌ ' + e.message + ' (instagram_manage_comments permission चाहिए)'; }
+  }
+  function extraCard() {
+    const b = 'px-3 py-2 rounded-xl bg-slate-700 text-white text-xs font-bold';
+    return `<div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-3 mt-5"><h3 class="font-black text-white">📊 Insights, Records &amp; Comments</h3><div class="flex flex-wrap gap-2"><button class="${b}" onclick="igTool.ins()">📊 Insights</button><button class="${b}" onclick="igTool.cm()">💬 Comments</button><button class="${b}" onclick="igTool.rec()">📋 Post Record</button></div><div id="ig-out" class="text-xs text-slate-300 space-y-2"></div></div>`;
+  }
+
+  function html() {
+    const busy = !!S.busy, inp = 'w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm outline-none', btn = 'px-4 py-2.5 rounded-xl font-bold text-sm disabled:opacity-50';
+    return `<div class="space-y-5">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-3">
+      <h3 class="font-black text-white text-lg"><i class="fa-brands fa-instagram text-pink-400"></i> Instagram Auto-Post</h3>
+      <details><summary class="text-xs text-amber-400 font-bold cursor-pointer">⚙️ Instagram Connection (एक बार)</summary><div class="mt-3 space-y-2">
+        <input id="ig-uid" class="${inp}" placeholder="Instagram Business Account ID" value="${E(LS('ig_uid'))}">
+        <input id="ig-tok" type="password" class="${inp}" placeholder="Long-lived Access Token (एक बार Save करें — बदलने तक रहेगा)" value="${E(LS('ig_tok') || safeSessionGet('ig_tok'))}">
+        <input id="ig-handle" class="${inp}" placeholder="Slide footer (जैसे @gloacademy)" value="${E(LS('ig_handle'))}">
+        <input id="ig-cta" class="${inp}" placeholder="Caption CTA (जैसे: Free tests के लिए bio का link 👉)" value="${E(LS('ig_cta'))}">
+        <input id="ig-tgt" type="password" class="${inp}" placeholder="Telegram Bot Token (alerts के लिए, optional)" value="${E(LS('ig_tgt'))}">
+        <input id="ig-tgc" class="${inp}" placeholder="Telegram Chat ID (optional)" value="${E(LS('ig_tgc'))}">
+        <button class="${btn} bg-indigo-600 text-white" onclick="igTool.save()">Save</button>
+        <p class="text-[11px] text-slate-400">Business/Creator account + linked Facebook Page + Meta App (instagram_content_publish permission) ज़रूरी है। Firebase Storage rules में <code>instagram/</code> पर write और public read allow करें।</p></div></details>
+      <div class="grid grid-cols-3 gap-2"><select id="ig-subj" class="${inp}" onchange="igTool.opt()">${['Mix','GK','GS','Polity','History','Geography','Science','Math','Reasoning','English','Hindi','Current Affairs','Computer'].map(v => `<option ${S.subj === v ? 'selected' : ''}>${v}</option>`).join('')}</select><select id="ig-fmt" class="${inp}" onchange="igTool.opt()">${[['fact', '📌 Important Facts'], ['pyq', '❓ PYQ Quiz'], ['trick', '⚡ Math/Reasoning Trick']].map(([v, l]) => `<option value="${v}" ${S.fmt === v ? 'selected' : ''}>${l}</option>`).join('')}</select><select id="ig-lang" class="${inp}" onchange="igTool.opt()">${[['hinglish', 'Hinglish'], ['hindi', 'हिंदी'], ['english', 'English']].map(([v, l]) => `<option value="${v}" ${S.lang === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="flex gap-2"><input id="ig-topic" class="${inp}" placeholder="Topic लिखें या नीचे से चुनें" value="${E(S.topic)}"><button ${busy ? 'disabled' : ''} class="${btn} bg-slate-700 text-white whitespace-nowrap" onclick="igTool.topics()">🔥 Trending</button></div>
+      ${S.topics.length ? `<div class="flex flex-wrap gap-2">${S.topics.map((t, i) => `<button class="text-xs px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-200" onclick="igTool.pick(${i})">${E(t)}</button>`).join('')}</div>` : ''}
+      <button ${busy ? 'disabled' : ''} class="${btn} bg-pink-600 text-white w-full" onclick="igTool.gen()">${S.busy === 'gen' ? '⏳ बन रही है…' : '✨ Post बनाओ'}</button>
+      <p id="ig-msg" class="text-xs text-slate-300">${E(S.msg)}</p>
+      ${(() => { const a = A(); return `<details ${a.on ? 'open' : ''} class="border-t border-slate-800 pt-3"><summary class="text-sm font-black text-emerald-400 cursor-pointer">🤖 Full Auto Mode ${a.on ? '(ON 🟢)' : '(OFF)'}</summary><div class="mt-3 space-y-2">
+        <label class="flex items-center gap-2 text-sm text-white"><input type="checkbox" id="ig-a-on" ${a.on ? 'checked' : ''}> Auto-post चालू करें</label>
+        <input id="ig-a-times" class="${inp}" placeholder="Post timings (24h): 09:00,18:00" value="${E(a.times)}">
+        <div class="grid grid-cols-2 gap-2"><select id="ig-a-subj" class="${inp}">${['Weekly Plan','Mix','GK','GS','Polity','History','Geography','Science','Math','Reasoning','English','Current Affairs'].map(v => `<option ${a.subj === v ? 'selected' : ''}>${v}</option>`).join('')}</select><select id="ig-a-kind" class="${inp}">${[['carousel','Carousel'],['reel','Reel'],['alternate','Carousel + Reel']].map(([v, l]) => `<option value="${v}" ${a.kind === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" id="ig-a-strict" ${a.strict ? 'checked' : ''}> Strict: AI fact-check में fail हुई post publish न हो (recommended)</label>
+        <div class="flex gap-2"><button class="${btn} bg-emerald-600 text-white flex-1" onclick="igTool.autoSave()">Save Auto Settings</button><button ${busy ? 'disabled' : ''} class="${btn} bg-slate-700 text-white" onclick="igTool.autoNow()">▶️ अभी 1 run</button></div>
+        <p class="text-[11px] text-amber-300">⚠️ Auto तभी चलेगा जब यह website <b>browser में खुली</b> हो और Connection का Token Save हो (एक बार Save करना काफ़ी है)। Reel के लिए tab screen पर दिखता रहे (वरना carousel बनेगा)।</p>
+        <ul id="ig-log" class="text-[11px] text-slate-400 list-disc ml-4 space-y-0.5">${logs().map(x => '<li>' + E(x) + '</li>').join('')}</ul></div></details>`; })()}
+    </div>
+    ${S.imgs.length ? `<div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-3">
+      <div class="flex items-center gap-2 text-xs text-slate-300">Theme: ${THEMES.map((t, i) => `<button onclick="igTool.theme(${i})" class="w-7 h-7 rounded-full border-2 ${S.theme === i ? 'border-white' : 'border-slate-600'}" style="background:${t[1]};min-height:0"></button>`).join('')}</div>
+      <div class="flex gap-3 overflow-x-auto pb-2">${S.imgs.map(m => `<img src="${m.url}" class="h-64 rounded-xl border border-slate-700 flex-none">`).join('')}</div>
+      ${S.post && (S.post.verify || []).length ? `<div class="text-xs bg-amber-950/50 border border-amber-800/50 text-amber-200 rounded-xl p-3"><b>⚠️ Post करने से पहले ये check करें:</b><ul class="list-disc ml-4 mt-1">${S.post.verify.map(v => `<li>${E(v)}</li>`).join('')}</ul></div>` : ''}
+      <textarea id="ig-cap" rows="7" class="${inp}">${E(S.caption)}</textarea>
+      ${S.post && S.post.reel_script ? `<details><summary class="text-xs text-slate-300 font-bold cursor-pointer">🎬 Reel script</summary><p class="text-xs text-slate-300 mt-2 whitespace-pre-wrap">${E(S.post.reel_script)}</p></details>` : ''}
+      <div class="border-t border-slate-800 pt-3 space-y-2"><label class="flex items-center gap-2 text-sm text-white"><input type="checkbox" id="ig-vo" checked> 🎙️ AI Voiceover (Hindi, Gemini key चाहिए)</label><label class="text-xs text-slate-300 block">🎵 Background music (optional, mp3/m4a)</label><input id="ig-aud" type="file" accept="audio/*" class="text-xs text-slate-300 w-full"><button ${busy ? 'disabled' : ''} class="${btn} bg-violet-600 text-white w-full" onclick="igTool.reel()">${S.busy === 'reel' ? '⏳ Reel बन रही है…' : '🎬 Reel बनाओ (9:16 video)'}</button>${S.vid ? `<video src="${S.vid.url}" controls playsinline class="h-80 rounded-xl border border-slate-700"></video><div class="flex gap-2"><a href="${S.vid.url}" download="reel.${S.vid.mp4 ? 'mp4' : 'webm'}" class="${btn} bg-slate-700 text-white">⬇️ Reel</a><button ${busy ? 'disabled' : ''} class="${btn} bg-emerald-600 text-white flex-1" onclick="igTool.pubReel()">${S.busy === 'pubreel' ? '⏳ Publishing…' : '✅ Reel Instagram पर Post'}</button></div>` : ''}</div>
+      <div class="flex gap-2"><button class="${btn} bg-slate-700 text-white" onclick="igTool.dl()">⬇️ Download</button><button ${busy ? 'disabled' : ''} class="${btn} bg-emerald-600 text-white flex-1" onclick="igTool.pub()">${S.busy === 'pub' ? '⏳ Publishing…' : '✅ Carousel Instagram पर Post'}</button></div>
+    </div>` : ''}</div>`;
+  }
+
+  const igTool = window.igTool = {
+    save() { [['ig-uid', 'ig_uid'], ['ig-handle', 'ig_handle'], ['ig-tok', 'ig_tok'], ['ig-cta', 'ig_cta'], ['ig-tgt', 'ig_tgt'], ['ig-tgc', 'ig_tgc']].forEach(([id, k]) => { const v = $(id).value.trim(); if (v) LSet(k, v); }); toast('Saved ✅ — अब बदलने तक रहेगा'); },
+    autoSave() { const a = A(); a.on = $('ig-a-on').checked; a.times = $('ig-a-times').value; a.subj = $('ig-a-subj').value; a.kind = $('ig-a-kind').value; a.strict = $('ig-a-strict').checked; LSet('ig_auto', JSON.stringify(a)); toast(a.on ? 'Auto mode ON ✅' : 'Auto mode OFF'); paint(); },
+    autoNow() { igTool.autoSave(); autoRun(A()); },
+    ins: loadInsights, cm: loadComments, rec: showRec,
+    async reply(i) { const c = S.cm[i], m = $('ig-r-' + i).value.trim(); if (!m) return; try { await gp(c.id + '/replies', { message: m }); toast('Reply चला गया ✅'); $('ig-r-' + i).parentNode.remove(); } catch (e) { toast(e.message, 'error'); } },
+    opt: readOpts, topics: findTopics, gen: generate, pub: publish, reel: makeReel, pubReel: publishReel,
+    pick(i) { S.topic = S.topics[i]; const e = $('ig-topic'); if (e) e.value = S.topic; },
+    async theme(i) { S.theme = i; S.caption = ($('ig-cap') || {}).value || S.caption; await renderSlides(); paint(); },
+    dl() { S.imgs.forEach((m, i) => { const a = document.createElement('a'); a.href = m.url; a.download = `slide-${i + 1}.jpg`; a.click(); }); }
+  };
+  app.renderIgTab = function () { return '<div id="ig-root">' + html() + '</div>' + extraCard(); };
+})();
 </script>
 
 </body>
